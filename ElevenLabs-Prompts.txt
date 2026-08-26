@@ -1,0 +1,133 @@
+ELEVENLABS VOICEOVER PROMPT PACK
+Project: Plant Tissue Culture LIMS - Core Modules
+Recommended Voice: Adam (Deep, Professional) OR Rachel (Clear, Professional) OR Daniel (British Scientific)
+Model: Eleven Multilingual v2
+Stability: 65-75 | Similarity Boost: 75 | Style: 35 | Speed: 0.92 (slightly slower for technical terms)
+
+=== HOW TO USE ===
+1. Create new Project in ElevenLabs > Voices > Professional > Adam/Rachel
+2. Paste each slide text as separate chapter/paragraph
+3. Use the [Emotion / Direction] tags below as guidance - ElevenLabs reads punctuation for pacing
+4. Add 0.8s pause between slides
+
+---
+
+[SLIDE 1 - TITLE - 20 seconds - Confident, Visionary]
+Text to synthesize:
+"Lab to Greenhouse: The Intelligent Plant Tissue Culture Management System. Core Modules and Functional Requirements. Digital transformation for micropropagation, from Stage One initiation to Stage Four dispatch."
+
+ElevenLabs Settings: Stability 70, Style 40, Pace -8%
+Prompt direction: "Professional biotech CEO opening a keynote. Confident, inspiring, clear enunciation."
+
+---
+
+[SLIDE 2 - THE CHALLENGE - 30 seconds - Empathetic, Problem-Solver]
+Text to synthesize:
+"Running a tissue culture lab is complex. Thousands of vessels. Lineages lost in notebooks. A contamination outbreak happens, but no one knows if it was the media, the operator, or the hood. Media prep errors waste expensive chemicals. And without yield forecasting, customer orders are delayed. Our system solves this with end-to-end digital traceability."
+
+ElevenLabs Settings: Stability 65, Style 30, Pace -5%
+Prompt direction: "Empathetic lab manager who understands the pain points. Slightly concerned tone at start, then hopeful and solution-oriented at the end. Pause after each pain point."
+
+---
+
+[SLIDE 3 - ARCHITECTURE - 30 seconds - Structured, Explainer]
+Text to synthesize:
+"At the heart is a central database connecting six core modules. One, Batch and Container Tracking. Two, Media Preparation. Three, Cleanroom Management. Four, Contamination and Quality Control. Five, Environmental Monitoring. And Six, Inventory and Order Management. Every plantlet flows through this ecosystem, from initiation to dispatch."
+
+ElevenLabs Settings: Stability 75, Style 20, Pace 0%
+Prompt direction: "Clear technical explainer, like a system architect. Number each module distinctly with a small pause. Precise."
+
+---
+
+[SLIDE 4 - MODULE 1 BATCH TRACKING - 40 seconds - Technical, Detailed]
+Text to synthesize:
+"Module One: Batch and Container Tracking with Barcode and QR Code System. We track plant lineages from Stage One Initiation, Stage Two Multiplication, Stage Three Rooting, to Stage Four Acclimatization and greenhouse transfer. The system auto-generates a Unique ID for every vessel, jar, tray, parent batch, subculture event, and media bottle. Just scan a QR code for fast subculturing, vessel transfers, and automatic audit logs. Click any plant, and you see its entire mother plant history."
+
+ElevenLabs Settings: Stability 75, Style 25, Pace -10% (important for scanning workflow)
+Prompt direction: "Focus on traceability. Emphasize words: Unique ID, QR code, genealogy, audit logs. Technical but accessible."
+
+---
+
+[SLIDE 5 - MODULE 2 MEDIA PREP - 40 seconds - Precise, Lab Scientist]
+Text to synthesize:
+"Module Two: Media Preparation and Recipe Management. Our Recipe Builder supports basal media like M S and W P M, stock solutions, Plant Growth Regulators, vitamins, and gelling agents. No more manual calculation errors. The system auto-calculates chemical quantities based on your target volume and stock concentrations. Every autoclave batch is logged: date, temperature, pressure, expiration date, and operator ID. And inventory is automatically deducted when you create a media batch."
+
+ElevenLabs Settings: Stability 80, Style 15, Pace -12%
+Prompt direction: "Lab scientist explaining SOP. Spell out M S and W P M as letters. Emphasize auto-calculates and auto-deducted. Very precise."
+
+---
+
+[SLIDE 6 - MODULE 3 CLEANROOM - 30 seconds - Efficient, Operational]
+Text to synthesize:
+"Module Three: Cleanroom and Workstation Management. The Subculturing Log. We log every laminar flow hood session: operator ID, batch in, batch out, vessel count, split ratio, and timestamp. Designed for operators wearing gloves, with hands-free scanning workflow. Plus, our Multiplier Calculator projects your expected yield using historical multiplication rates, so you know what you'll have weeks in advance."
+
+ElevenLabs Settings: Stability 70, Style 30, Pace -5%
+Prompt direction: "Operations manager, efficient and practical. Emphasize hands-free and projects expected yield."
+
+---
+
+[SLIDE 7 - MODULE 4 CONTAMINATION QC - 35 seconds - Analytical, Serious]
+Text to synthesize:
+"Module Four: Contamination and Quality Control Tracking. Log every contamination event by type: bacterial, fungal, viral, or unknown. Plus vessel, operator, media batch, and room location. Our analytics dashboard pinpoints root causes. Is it a specific media batch failure? An operator error? Or a hood malfunction? You also get discard and waste logging, and mortality rate tracking, with early warnings for contamination spikes."
+
+ElevenLabs Settings: Stability 70, Style 35, Pace -8%
+Prompt direction: "Quality Control lead, analytical and serious. Raise intonation slightly on the three root-cause questions to show investigation."
+
+---
+
+[SLIDE 8 - MODULE 5 ENVIRONMENT - 25 seconds - Modern, IoT]
+Text to synthesize:
+"Module Five: Environmental and Growth Room Monitoring. Track critical parameters: temperature, photoperiod, light intensity, or PAR, and humidity. Log manually, or connect IoT sensors automatically via MQTT and REST APIs. Get instant alerts for out-of-range conditions, and correlate growth performance with your environment data."
+
+ElevenLabs Settings: Stability 75, Style 25, Pace 0%
+Prompt direction: "Modern IoT tech tone. Emphasize MQTT, REST APIs, and instant alerts. Futuristic but grounded."
+
+---
+
+[SLIDE 9 - MODULE 6 INVENTORY & ORDERS - 30 seconds - Business, Results]
+Text to synthesize:
+"Module Six: Inventory and Order Management. Complete stock control for raw materials: chemicals, culture vessels, tools, and safety gear, with low-stock alerts. Track media and consumable expiry. And crucially, link your ready acclimatized Stage Four plants directly to customer sales orders and dispatch. From lab to customer, nothing is lost. From inventory to income."
+
+ElevenLabs Settings: Stability 70, Style 30, Pace -5%
+Prompt direction: "Business operations, results-driven. Emphasize low-stock alerts and customer sales orders."
+
+---
+
+[SLIDE 10 - END TO END WORKFLOW - 30 seconds - Storytelling, Flow]
+Text to synthesize:
+"So, what does one scan tell you? Everything. Mother plant ID, to recipe and media batch autoclaved, to inoculation in the hood by a specific operator, to growth room environment logs, to subculture split, contamination check, Stage Four acclimatization, sales order, and final dispatch. Every step is QR-scanned, timestamped, and fully auditable for compliance."
+
+ElevenLabs Settings: Stability 65, Style 40, Pace -8%
+Prompt direction: "Storyteller, walking through the lifecycle. Use flowing cadence, one step leads to next. End with strong compliance tone."
+
+---
+
+[SLIDE 11 - ANALYTICS - 25 seconds - Insightful, Data-Driven]
+Text to synthesize:
+"This is not just tracking. It is intelligence. From data to decisions. Get multiplication rate forecasting, contamination heatmaps by room, operator, and media, yield projection versus actual orders, operator efficiency, and cost per plantlet. Dashboards tailored for the Lab Manager, QC Manager, and Operations."
+
+ElevenLabs Settings: Stability 70, Style 35, Pace -5%
+Prompt direction: "Data scientist presenting insights. Emphasize intelligence, forecasting, heatmaps. Confident."
+
+---
+
+[SLIDE 12 - TECH STACK & NEXT STEPS - 25 seconds - Closing, Call to Action]
+Text to synthesize:
+"Built for the real lab. Supports barcode and QR scanners, mobile and handheld. IoT-ready with MQTT and REST. Role-based access for lab techs, QC, managers, and sales. Full audit trail, cloud backup, and offline mode for the cleanroom. Next steps: Prototype the scanning flow, build the recipe builder MVP, and pilot it in Growth Room One. Let's digitize your lab."
+
+ElevenLabs Settings: Stability 70, Style 45, Pace -3%
+Prompt direction: "Closing keynote, strong call to action. End with inspirational 'Let's digitize your lab' with upward inflection."
+
+---
+
+BONUS: PROJECT-LEVEL SETTINGS FOR ELEVENLABS
+- Voice: Adam - Professional Documentary (or Bella - Professional)
+- If using Voice Library, search: "lab documentary" "deep tech explainer"
+- Add pronunciation dictionary:
+  WPM -> W P M
+  MS -> M S
+  PGRs -> P G Rs
+  PAR -> P A R
+  MQTT -> M Q T T
+  REST APIs -> REST A P Is
+  LIMS -> L I M S
