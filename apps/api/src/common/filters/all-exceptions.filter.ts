@@ -11,13 +11,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const body = exception instanceof HttpException ? exception.getResponse() : null;
+    const bodyObj =
+      typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null;
 
-    const rawMessage =
-      typeof body === "string"
-        ? body
-        : ((body as { message?: string | string[] } | null)?.message ?? "Internal server error");
-    const details = Array.isArray(rawMessage) ? rawMessage : undefined;
-    const message = Array.isArray(rawMessage) ? "Validation failed" : rawMessage;
+    const rawMessage = typeof body === "string" ? body : (bodyObj?.message ?? "Internal server error");
+    const message = Array.isArray(rawMessage) ? "Validation failed" : (rawMessage as string);
+
+    // class-validator puts field errors in `message` as a string[]; custom exceptions (e.g.
+    // BadRequestException({ message, insufficient: [...] })) put structured data in other
+    // top-level fields. Surface both as `details` rather than silently dropping either.
+    const { message: _m, statusCode: _s, error: _e, ...rest } = bodyObj ?? {};
+    const details = Array.isArray(rawMessage)
+      ? rawMessage
+      : Object.keys(rest).length > 0
+        ? rest
+        : undefined;
 
     response.status(status).json({
       error: {
