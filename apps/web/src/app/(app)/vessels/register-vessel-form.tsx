@@ -5,6 +5,7 @@ import { registerVesselAction, type RegisterVesselState } from "./actions";
 import { Field, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { ClientBarcodeQr } from "@/components/barcode-qr-client";
 import type { Batch, Location } from "@/lib/types";
 
 const VESSEL_TYPES = ["JAR", "TRAY", "TUBE", "BAG"] as const;
@@ -58,9 +59,12 @@ export function RegisterVesselForm({ batches, locations }: { batches: Batch[]; l
       <div className="sm:col-span-2 lg:col-span-4">
         <FormError message={state.error} />
         {state.createdBarcode && (
-          <p className="rounded-md bg-[#e6f4ec] px-3 py-2 text-sm text-[var(--color-accent)]">
-            Registered — barcode <span className="font-mono">{state.createdBarcode}</span>
-          </p>
+          <div className="flex items-center gap-3 rounded-md bg-[#e6f4ec] px-3 py-2 text-sm text-[var(--color-accent)]">
+            <ClientBarcodeQr value={state.createdBarcode} size={72} />
+            <span>
+              Registered — barcode <span className="font-mono">{state.createdBarcode}</span>
+            </span>
+          </div>
         )}
       </div>
     </form>

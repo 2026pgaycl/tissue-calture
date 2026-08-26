@@ -5,6 +5,7 @@ import { resolveVesselByBarcode, type ResolvedVessel } from "@/lib/actions/vesse
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 
 /**
  * Scan-first vessel input: types/scans a barcode, resolves it via the API, and shows a
@@ -24,16 +25,23 @@ export function VesselBarcodeField({
   const [barcode, setBarcode] = useState("");
   const [resolved, setResolved] = useState<ResolvedVessel | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const fieldId = `barcode-${name}-${label}`;
 
-  function lookup() {
-    if (!barcode.trim()) return;
+  function resolve(value: string) {
+    if (!value.trim()) return;
     startTransition(async () => {
-      const result = await resolveVesselByBarcode(barcode);
+      const result = await resolveVesselByBarcode(value);
       setResolved(result.vessel ?? null);
       setError(result.vessel ? null : (result.error ?? "Not found."));
     });
+  }
+
+  function handleScanned(text: string) {
+    setScannerOpen(false);
+    setBarcode(text);
+    resolve(text);
   }
 
   return (
@@ -49,11 +57,11 @@ export function VesselBarcodeField({
                 setResolved(null);
                 setError(null);
               }}
-              onBlur={lookup}
+              onBlur={() => resolve(barcode)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  lookup();
+                  resolve(barcode);
                 }
               }}
               placeholder="VSL-XXXXXXXXXX"
@@ -61,7 +69,10 @@ export function VesselBarcodeField({
             />
           </Field>
         </div>
-        <Button type="button" variant="secondary" onClick={lookup} disabled={isPending || !barcode.trim()}>
+        <Button type="button" variant="secondary" onClick={() => setScannerOpen(true)} title="Scan with camera">
+          📷
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => resolve(barcode)} disabled={isPending || !barcode.trim()}>
           {isPending ? "…" : "Look up"}
         </Button>
         {onRemove && (
@@ -81,6 +92,7 @@ export function VesselBarcodeField({
         </div>
       )}
       <input type="hidden" name={name} value={resolved?.vessel.id ?? ""} />
+      {scannerOpen && <BarcodeScanner onDetected={handleScanned} onClose={() => setScannerOpen(false)} />}
     </div>
   );
 }

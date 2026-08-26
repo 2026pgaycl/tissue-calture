@@ -4,9 +4,9 @@ import { requireSession, hasRole } from "@/lib/dal";
 import type { Batch, Location, PaginatedResult, Vessel, VesselHistory } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Field, Input } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
+import { BarcodeQr } from "@/components/barcode-qr";
 import { RegisterVesselForm } from "./register-vessel-form";
+import { VesselSearchForm } from "./vessel-search-form";
 
 const STATUS_TONE = {
   ACTIVE: "success",
@@ -54,14 +54,7 @@ export default async function VesselsPage({
       </div>
 
       <Card>
-        <form action="/vessels" className="flex items-end gap-3">
-          <div className="flex-1">
-            <Field label="Barcode" htmlFor="barcode">
-              <Input id="barcode" name="barcode" defaultValue={barcode ?? ""} placeholder="VSL-XXXXXXXXXX" autoFocus />
-            </Field>
-          </div>
-          <Button type="submit">Look up</Button>
-        </form>
+        <VesselSearchForm initialBarcode={barcode ?? ""} />
       </Card>
 
       {lookupError && (
@@ -72,51 +65,56 @@ export default async function VesselsPage({
 
       {vessel && (
         <Card title={vessel.barcode}>
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Status</dt>
-              <dd>
-                <Badge tone={STATUS_TONE[vessel.status]}>{vessel.status.replace(/_/g, " ")}</Badge>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Type</dt>
-              <dd>{vessel.vesselType}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Batch</dt>
-              <dd>
-                <Link href={`/batches/${vessel.batchId}`} className="text-[var(--color-accent)]">
-                  {vessel.batchId.slice(0, 8)}…
-                </Link>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Registered</dt>
-              <dd>{new Date(vessel.createdAt).toLocaleDateString()}</dd>
-            </div>
-          </dl>
+          <div className="flex flex-col gap-5 sm:flex-row">
+            <BarcodeQr value={vessel.barcode} size={128} />
+            <div className="flex-1">
+              <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                <div>
+                  <dt className="text-[var(--color-text-muted)]">Status</dt>
+                  <dd>
+                    <Badge tone={STATUS_TONE[vessel.status]}>{vessel.status.replace(/_/g, " ")}</Badge>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--color-text-muted)]">Type</dt>
+                  <dd>{vessel.vesselType}</dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--color-text-muted)]">Batch</dt>
+                  <dd>
+                    <Link href={`/batches/${vessel.batchId}`} className="text-[var(--color-accent)]">
+                      {vessel.batchId.slice(0, 8)}…
+                    </Link>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--color-text-muted)]">Registered</dt>
+                  <dd>{new Date(vessel.createdAt).toLocaleDateString()}</dd>
+                </div>
+              </dl>
 
-          {history && (
-            <div className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Subculture events</dt>
-                <dd>{history.sessionVessels.length}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Contamination events</dt>
-                <dd>{history.contaminationEvents.length}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Discard logs</dt>
-                <dd>{history.discardLogs.length}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Fulfillments</dt>
-                <dd>{history.fulfillments.length}</dd>
-              </div>
+              {history && (
+                <div className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                  <div>
+                    <dt className="text-[var(--color-text-muted)]">Subculture events</dt>
+                    <dd>{history.sessionVessels.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--color-text-muted)]">Contamination events</dt>
+                    <dd>{history.contaminationEvents.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--color-text-muted)]">Discard logs</dt>
+                    <dd>{history.discardLogs.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--color-text-muted)]">Fulfillments</dt>
+                    <dd>{history.fulfillments.length}</dd>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </Card>
       )}
 
