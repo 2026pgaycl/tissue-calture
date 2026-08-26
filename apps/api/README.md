@@ -22,6 +22,27 @@ npm run start:dev
 
 For further schema changes during development, use `npm run prisma:migrate` (wraps `prisma migrate dev`) instead of hand-editing SQL.
 
+## Local Postgres instance
+
+This machine already runs a system-wide PostgreSQL 18 Windows service (`postgresql-x64-18`, port 5432), but its `postgres` superuser password wasn't available and couldn't be reset, so dev setup uses a **second, self-contained instance** instead — same binaries, separate data directory, separate port, no admin rights or Docker required:
+
+- Data directory: `apps/api/.pgdata` (gitignored — this is local state, not source)
+- Port: **5433** (the system service stays on 5432, untouched)
+- Superuser: `tcms` / `tcms_dev_pw` (only valid for this instance's cluster)
+- `DATABASE_URL` in `.env`/`.env.example` already points at it: `postgresql://tcms:tcms_dev_pw@127.0.0.1:5433/tcms_dev`
+
+Start/stop it with the Postgres binaries already on this machine (adjust the path if yours differs):
+
+```powershell
+# Start
+& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "apps\api\.pgdata" -l "apps\api\.pgdata-log.txt" -o "-p 5433 -c listen_addresses=127.0.0.1" start
+
+# Stop
+& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "apps\api\.pgdata" stop
+```
+
+If this repo moves to a machine with its own Postgres (or you'd rather use the system service, Docker, or a managed instance), just point `DATABASE_URL` at that instead — nothing else in the app assumes this specific setup.
+
 ## Module structure
 
 | Module | Covers |

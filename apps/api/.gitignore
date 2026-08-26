@@ -3,3 +3,7 @@ dist
 
 # Keep environment variables out of version control
 .env
+
+# Local-only Postgres data dir + log (see README: "Local Postgres instance")
+.pgdata/
+.pgdata-log.txt

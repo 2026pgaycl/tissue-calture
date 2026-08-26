@@ -6,8 +6,8 @@ A production/research management platform for plant tissue culture laboratories:
 
 Phase 1 (MVP) scaffolding in progress — see [`docs/05-roadmap.md`](docs/05-roadmap.md) for the phased build plan.
 
-- [`apps/api`](apps/api) — NestJS REST API on Prisma/PostgreSQL: auth/RBAC, batches & vessel lineage, media prep (recipes, inventory deduction, autoclave logs), subculture sessions, and contamination/discard logging. QC analytics, environmental logging, and sales orders are deferred to Phase 2.
-- [`apps/web`](apps/web) — Next.js 16 frontend: login/session (httpOnly JWT cookie), role-aware nav, and pages for every module above (batches + lineage view, vessel barcode lookup, media prep, subculture sessions, QC logging, user admin).
+- [`apps/api`](apps/api) — NestJS REST API on Prisma/PostgreSQL: auth/RBAC, batches & vessel lineage, media prep (recipes, inventory deduction, autoclave logs), subculture sessions, and contamination/discard logging. QC analytics, environmental logging, and sales orders are deferred to Phase 2. Migrated and seeded against a real local Postgres instance — see [`apps/api/README.md`](apps/api/README.md#local-postgres-instance).
+- [`apps/web`](apps/web) — Next.js 16 frontend: login/session (httpOnly JWT cookie), role-aware nav, and pages for every module above (batches + lineage view, vessel barcode lookup, media prep, subculture sessions, QC logging, user admin). Verified end-to-end against the live API.
 
 ## Recommended Stack
 
