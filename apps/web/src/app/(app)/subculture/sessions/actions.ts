@@ -13,14 +13,10 @@ export async function startSessionAction(
   formData: FormData,
 ): Promise<StartSessionState> {
   const workstationId = String(formData.get("workstationId") ?? "");
-  const rawIds = String(formData.get("inputVesselIds") ?? "");
-  const inputVesselIds = rawIds
-    .split(/[\s,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const inputVesselIds = formData.getAll("inputVesselIds").map(String).filter(Boolean);
 
   if (!workstationId || inputVesselIds.length === 0) {
-    return { error: "Workstation and at least one input vessel ID are required." };
+    return { error: "Workstation and at least one resolved input vessel are required." };
   }
 
   try {

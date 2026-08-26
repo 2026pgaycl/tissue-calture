@@ -5,6 +5,7 @@ import { createContaminationEventAction, type FormState } from "./actions";
 import { Field, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { VesselBarcodeField } from "@/components/vessel-barcode-field";
 import type { Location } from "@/lib/types";
 
 const TYPES = ["BACTERIAL", "FUNGAL", "VIRAL", "UNKNOWN", "MIXED"] as const;
@@ -16,9 +17,7 @@ export function CreateEventForm({ locations }: { locations: Location[] }) {
 
   return (
     <form action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <Field label="Vessel ID" htmlFor="vesselId">
-        <Input id="vesselId" name="vesselId" placeholder="uuid" required />
-      </Field>
+      <VesselBarcodeField name="vesselId" label="Vessel barcode" />
       <Field label="Contamination type" htmlFor="contaminationType">
         <Select id="contaminationType" name="contaminationType" required defaultValue="">
           <option value="" disabled>

@@ -2,9 +2,10 @@
 
 import { useActionState } from "react";
 import { createDiscardLogAction, type FormState } from "./actions";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { VesselBarcodeField } from "@/components/vessel-barcode-field";
 
 const REASONS = ["CONTAMINATION", "MORTALITY", "QUALITY", "END_OF_LIFE"] as const;
 const STAGES = [
@@ -20,9 +21,7 @@ export function DiscardLogForm() {
 
   return (
     <form action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Field label="Vessel ID" htmlFor="vesselId">
-        <Input id="vesselId" name="vesselId" placeholder="uuid" required />
-      </Field>
+      <VesselBarcodeField name="vesselId" label="Vessel barcode" />
       <Field label="Reason" htmlFor="reason">
         <Select id="reason" name="reason" required defaultValue="">
           <option value="" disabled>

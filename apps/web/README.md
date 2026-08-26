@@ -38,10 +38,13 @@ Mirrors the API's modules — see [`src/components/shell/nav-items.ts`](src/comp
 
 **Not built here** (Phase 2 per [`docs/05-roadmap.md`](../../docs/05-roadmap.md), since the API doesn't expose them yet): QC analytics dashboard, yield projection, environmental logging, sales orders.
 
+## Scan-first vessel fields
+
+Subculture sessions, contamination events, and discard logs all reference a vessel — but the API's `/subculture-sessions`, `/contamination-events`, and `/discard-logs` endpoints take a vessel **UUID**, not a barcode. [`VesselBarcodeField`](src/components/vessel-barcode-field.tsx) bridges that: type/scan a barcode, it resolves via `resolveVesselByBarcode` ([`src/lib/actions/vessels.ts`](src/lib/actions/vessels.ts)) against `GET /vessels/lookup/:barcode`, shows a confirm-before-context card (stage + status, per [`docs/04-ux-workflows.md`](../../docs/04-ux-workflows.md)'s scan-first pattern), and only then populates a hidden input with the real UUID for the enclosing form to submit. Resolution fires on blur or Enter — no separate "confirm" step to click through when scanning normally. The subculture start-session form uses a repeatable list of these (one per input vessel, same dynamic-rows pattern as the recipe builder), since a session can fan in from more than one vessel.
+
 ## Known gaps in this pass
 
-- Subculture sessions and contamination logging take a raw **vessel UUID**, not a scanned barcode — the API's `/subculture-sessions` and `/contamination-events` endpoints take vessel IDs directly. Resolving a scanned barcode to a UUID client-side (via `/vessels/lookup/:barcode`) before submit is the natural next step for the real scan-first workflow in [`docs/04-ux-workflows.md`](../../docs/04-ux-workflows.md).
-- No camera-based barcode scanning yet — `Vessel Lookup` and the ID fields are text input for now.
+- No camera-based barcode scanning yet — `VesselBarcodeField` and `Vessel Lookup` are both text input for now, not an actual scanner/camera integration.
 - Create forms don't reset after a successful submission (values persist, which is occasionally convenient for entering several similar rows, but isn't a deliberate design decision).
 
 ## Stack notes (Next.js 16)
