@@ -1,0 +1,31 @@
+{
+  "name": "@tcms/api",
+  "version": "1.0.0",
+  "description": "Tissue Culture Management System - API & Prisma schema",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:format": "prisma format",
+    "prisma:validate": "prisma validate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.3.0",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "pg": "^8.23.0"
+  }
+}

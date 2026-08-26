@@ -4,7 +4,9 @@ A production/research management platform for plant tissue culture laboratories:
 
 ## Status
 
-Architecture & design phase. No application code yet — see [`docs/05-roadmap.md`](docs/05-roadmap.md) for the phased build plan starting with Phase 1 (MVP).
+Phase 1 (MVP) scaffolding in progress — see [`docs/05-roadmap.md`](docs/05-roadmap.md) for the phased build plan.
+
+- [`apps/api`](apps/api) — Prisma schema (PostgreSQL) modeling the full ERD, plus an initial SQL migration. NestJS API endpoints not yet implemented.
 
 ## Recommended Stack
 

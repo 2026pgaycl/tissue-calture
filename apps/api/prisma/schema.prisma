@@ -1,0 +1,558 @@
+// Tissue Culture Management System — Prisma schema
+// Mirrors docs/02-database-schema.md at the repo root. Keep them in sync.
+// learn more about Prisma schema: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  LAB_MANAGER
+  LAB_TECHNICIAN
+  MEDIA_PREP_STAFF
+}
+
+enum BatchStage {
+  I_INITIATION
+  II_MULTIPLICATION
+  III_ROOTING
+  IV_ACCLIMATIZATION
+}
+
+enum SourceType {
+  SEED
+  EXPLANT
+  TISSUE
+}
+
+enum BatchStatus {
+  ACTIVE
+  COMPLETED
+  DISCARDED
+}
+
+enum VesselType {
+  JAR
+  TRAY
+  TUBE
+  BAG
+}
+
+enum VesselStatus {
+  ACTIVE
+  CONTAMINATED
+  DISCARDED
+  TRANSFERRED_GREENHOUSE
+}
+
+enum SubcultureDirection {
+  INPUT
+  OUTPUT
+}
+
+enum ChemicalCategory {
+  MACRO_SALT
+  MICRO_SALT
+  VITAMIN
+  PGR
+  GELLING_AGENT
+  SUGAR
+  OTHER
+}
+
+enum MediaBatchStatus {
+  AVAILABLE
+  DEPLETED
+  EXPIRED
+  FAILED_AUTOCLAVE
+}
+
+enum AutoclaveResult {
+  PASS
+  FAIL
+}
+
+enum InventoryTransactionType {
+  DEDUCTION
+  RECEIPT
+  ADJUSTMENT
+}
+
+enum ContaminationType {
+  BACTERIAL
+  FUNGAL
+  VIRAL
+  UNKNOWN
+  MIXED
+}
+
+enum ContaminationAction {
+  ISOLATED
+  DISCARDED
+  TREATED
+}
+
+enum DiscardReason {
+  CONTAMINATION
+  MORTALITY
+  QUALITY
+  END_OF_LIFE
+}
+
+enum LocationType {
+  CLEANROOM
+  GROWTH_ROOM
+  GREENHOUSE
+  STORAGE
+}
+
+enum EnvLogSource {
+  MANUAL
+  IOT
+}
+
+enum OrderStatus {
+  PENDING
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Identity
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  createdBatches        Batch[]                @relation("BatchCreatedBy")
+  subcultureSessions    SubcultureSession[]    @relation("SessionOperator")
+  mediaRecipes          MediaRecipe[]          @relation("RecipeCreatedBy")
+  mediaBatches          MediaBatch[]           @relation("MediaBatchPreparedBy")
+  autoclaveLogs         AutoclaveLog[]         @relation("AutoclaveOperator")
+  inventoryTransactions InventoryTransaction[] @relation("InventoryOperator")
+  contaminationEvents   ContaminationEvent[]   @relation("ContaminationDetectedBy")
+  discardLogs           DiscardLog[]           @relation("DiscardedBy")
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Batch & Container Tracking
+// ─────────────────────────────────────────────────────────────────────────
+
+model PlantSpecies {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  scientificName String?  @map("scientific_name")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  batches        Batch[]
+  orderLineItems OrderLineItem[]
+
+  @@map("plant_species")
+}
+
+model Batch {
+  id            String      @id @default(uuid()) @db.Uuid
+  parentBatchId String?     @map("parent_batch_id") @db.Uuid
+  speciesId     String      @map("species_id") @db.Uuid
+  stage         BatchStage
+  sourceType    SourceType? @map("source_type")
+  status        BatchStatus @default(ACTIVE)
+  createdById   String      @map("created_by") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  parentBatch  Batch?  @relation("BatchLineage", fields: [parentBatchId], references: [id])
+  childBatches Batch[] @relation("BatchLineage")
+
+  species   PlantSpecies @relation(fields: [speciesId], references: [id])
+  createdBy User         @relation("BatchCreatedBy", fields: [createdById], references: [id])
+  vessels   Vessel[]
+
+  @@index([parentBatchId])
+  @@index([speciesId])
+  @@index([stage, status])
+  @@map("batches")
+}
+
+model Vessel {
+  id             String       @id @default(uuid()) @db.Uuid
+  barcode        String       @unique
+  batchId        String       @map("batch_id") @db.Uuid
+  parentVesselId String?      @map("parent_vessel_id") @db.Uuid
+  mediaBatchId   String?      @map("media_batch_id") @db.Uuid
+  locationId     String       @map("location_id") @db.Uuid
+  vesselType     VesselType   @map("vessel_type")
+  status         VesselStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  parentVessel Vessel?  @relation("VesselLineage", fields: [parentVesselId], references: [id])
+  childVessels Vessel[] @relation("VesselLineage")
+
+  batch      Batch       @relation(fields: [batchId], references: [id])
+  mediaBatch MediaBatch? @relation(fields: [mediaBatchId], references: [id])
+  location   Location    @relation(fields: [locationId], references: [id])
+
+  subcultureSessionVessels SubcultureSessionVessel[]
+  contaminationEvents      ContaminationEvent[]
+  discardLogs              DiscardLog[]
+  orderFulfillments        OrderFulfillment[]
+
+  @@index([batchId])
+  @@index([parentVesselId])
+  @@index([mediaBatchId])
+  @@index([locationId])
+  @@index([status])
+  @@map("vessels")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Cleanroom & Subculturing
+// ─────────────────────────────────────────────────────────────────────────
+
+model Workstation {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  locationId        String    @map("location_id") @db.Uuid
+  hoodType          String?   @map("hood_type")
+  lastCertifiedDate DateTime? @map("last_certified_date") @db.Date
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  location            Location             @relation(fields: [locationId], references: [id])
+  subcultureSessions  SubcultureSession[]
+  contaminationEvents ContaminationEvent[]
+
+  @@index([locationId])
+  @@map("workstations")
+}
+
+model SubcultureSession {
+  id            String    @id @default(uuid()) @db.Uuid
+  workstationId String    @map("workstation_id") @db.Uuid
+  operatorId    String    @map("operator_id") @db.Uuid
+  startedAt     DateTime  @default(now()) @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  splitRatio    String?   @map("split_ratio")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  workstation Workstation @relation(fields: [workstationId], references: [id])
+  operator    User        @relation("SessionOperator", fields: [operatorId], references: [id])
+
+  sessionVessels SubcultureSessionVessel[]
+
+  @@index([workstationId])
+  @@index([operatorId])
+  @@map("subculture_sessions")
+}
+
+model SubcultureSessionVessel {
+  sessionId String              @map("session_id") @db.Uuid
+  vesselId  String              @map("vessel_id") @db.Uuid
+  direction SubcultureDirection
+
+  session SubcultureSession @relation(fields: [sessionId], references: [id])
+  vessel  Vessel            @relation(fields: [vesselId], references: [id])
+
+  @@id([sessionId, vesselId, direction])
+  @@index([vesselId])
+  @@map("subculture_session_vessels")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Media Preparation
+// ─────────────────────────────────────────────────────────────────────────
+
+model Chemical {
+  id                 String           @id @default(uuid()) @db.Uuid
+  name               String
+  category           ChemicalCategory
+  stockConcentration Decimal          @map("stock_concentration") @db.Decimal(12, 4)
+  unit               String
+  currentStockQty    Decimal          @default(0) @map("current_stock_qty") @db.Decimal(12, 4)
+  reorderThreshold   Decimal          @map("reorder_threshold") @db.Decimal(12, 4)
+  supplier           String?
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  recipeComponents      RecipeComponent[]
+  inventoryTransactions InventoryTransaction[]
+  gellingForRecipes     MediaRecipe[]          @relation("RecipeGellingAgent")
+
+  @@index([category])
+  @@map("chemicals")
+}
+
+model MediaRecipe {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  basalMediaType String   @map("basal_media_type")
+  targetPh       Decimal  @map("target_ph") @db.Decimal(4, 2)
+  gellingAgentId String?  @map("gelling_agent_id") @db.Uuid
+  createdById    String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  gellingAgent Chemical? @relation("RecipeGellingAgent", fields: [gellingAgentId], references: [id])
+  createdBy    User      @relation("RecipeCreatedBy", fields: [createdById], references: [id])
+
+  components   RecipeComponent[]
+  mediaBatches MediaBatch[]
+
+  @@index([createdById])
+  @@map("media_recipes")
+}
+
+model RecipeComponent {
+  id            String  @id @default(uuid()) @db.Uuid
+  recipeId      String  @map("recipe_id") @db.Uuid
+  chemicalId    String  @map("chemical_id") @db.Uuid
+  concentration Decimal @db.Decimal(12, 4)
+  unit          String
+
+  recipe   MediaRecipe @relation(fields: [recipeId], references: [id])
+  chemical Chemical    @relation(fields: [chemicalId], references: [id])
+
+  @@index([recipeId])
+  @@index([chemicalId])
+  @@map("recipe_components")
+}
+
+model MediaBatch {
+  id             String           @id @default(uuid()) @db.Uuid
+  barcode        String           @unique
+  recipeId       String           @map("recipe_id") @db.Uuid
+  targetVolumeL  Decimal          @map("target_volume_l") @db.Decimal(10, 3)
+  finalPh        Decimal?         @map("final_ph") @db.Decimal(4, 2)
+  preparedById   String           @map("prepared_by") @db.Uuid
+  preparedAt     DateTime         @default(now()) @map("prepared_at")
+  expirationDate DateTime         @map("expiration_date") @db.Date
+  status         MediaBatchStatus @default(AVAILABLE)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  recipe     MediaRecipe @relation(fields: [recipeId], references: [id])
+  preparedBy User        @relation("MediaBatchPreparedBy", fields: [preparedById], references: [id])
+
+  autoclaveLogs         AutoclaveLog[]
+  vessels               Vessel[]
+  inventoryTransactions InventoryTransaction[]
+  contaminationEvents   ContaminationEvent[]
+
+  @@index([recipeId])
+  @@index([status])
+  @@map("media_batches")
+}
+
+model AutoclaveLog {
+  id           String          @id @default(uuid()) @db.Uuid
+  mediaBatchId String          @map("media_batch_id") @db.Uuid
+  cycleDate    DateTime        @map("cycle_date")
+  temperatureC Decimal         @map("temperature_c") @db.Decimal(5, 2)
+  pressureKpa  Decimal         @map("pressure_kpa") @db.Decimal(6, 2)
+  durationMin  Int             @map("duration_min")
+  operatorId   String          @map("operator_id") @db.Uuid
+  result       AutoclaveResult
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  mediaBatch MediaBatch @relation(fields: [mediaBatchId], references: [id])
+  operator   User       @relation("AutoclaveOperator", fields: [operatorId], references: [id])
+
+  @@index([mediaBatchId])
+  @@map("autoclave_logs")
+}
+
+model InventoryTransaction {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  chemicalId          String                   @map("chemical_id") @db.Uuid
+  transactionType     InventoryTransactionType @map("transaction_type")
+  quantity            Decimal                  @db.Decimal(12, 4)
+  relatedMediaBatchId String?                  @map("related_media_batch_id") @db.Uuid
+  operatorId          String                   @map("operator_id") @db.Uuid
+  occurredAt          DateTime                 @default(now()) @map("occurred_at")
+
+  chemical          Chemical    @relation(fields: [chemicalId], references: [id])
+  relatedMediaBatch MediaBatch? @relation(fields: [relatedMediaBatchId], references: [id])
+  operator          User        @relation("InventoryOperator", fields: [operatorId], references: [id])
+
+  @@index([chemicalId])
+  @@index([relatedMediaBatchId])
+  @@map("inventory_transactions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Contamination & QC
+// ─────────────────────────────────────────────────────────────────────────
+
+model ContaminationEvent {
+  id                String              @id @default(uuid()) @db.Uuid
+  vesselId          String              @map("vessel_id") @db.Uuid
+  contaminationType ContaminationType   @map("contamination_type")
+  // media batch & workstation are snapshotted at detection time (not live-derived from the
+  // vessel) so root-cause analytics remain accurate even after the vessel is later discarded
+  // or moved. Still modeled as real FKs since nothing in this system hard-deletes those rows.
+  mediaBatchId      String?             @map("media_batch_id") @db.Uuid
+  workstationId     String?             @map("workstation_id") @db.Uuid
+  locationId        String              @map("location_id") @db.Uuid
+  detectedById      String              @map("detected_by") @db.Uuid
+  detectedAt        DateTime            @default(now()) @map("detected_at")
+  rootCauseNotes    String?             @map("root_cause_notes")
+  actionTaken       ContaminationAction @map("action_taken")
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  vessel      Vessel       @relation(fields: [vesselId], references: [id])
+  mediaBatch  MediaBatch?  @relation(fields: [mediaBatchId], references: [id])
+  workstation Workstation? @relation(fields: [workstationId], references: [id])
+  location    Location     @relation(fields: [locationId], references: [id])
+  detectedBy  User         @relation("ContaminationDetectedBy", fields: [detectedById], references: [id])
+
+  @@index([vesselId])
+  @@index([mediaBatchId])
+  @@index([workstationId])
+  @@index([locationId])
+  @@index([contaminationType])
+  @@map("contamination_events")
+}
+
+model DiscardLog {
+  id             String        @id @default(uuid()) @db.Uuid
+  vesselId       String        @map("vessel_id") @db.Uuid
+  reason         DiscardReason
+  stageAtDiscard BatchStage    @map("stage_at_discard")
+  discardedById  String        @map("discarded_by") @db.Uuid
+  discardedAt    DateTime      @default(now()) @map("discarded_at")
+
+  vessel      Vessel @relation(fields: [vesselId], references: [id])
+  discardedBy User   @relation("DiscardedBy", fields: [discardedById], references: [id])
+
+  @@index([vesselId])
+  @@map("discard_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Environmental Monitoring
+// ─────────────────────────────────────────────────────────────────────────
+
+model Location {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  type      LocationType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  vessels             Vessel[]
+  workstations        Workstation[]
+  environmentalLogs   EnvironmentalLog[]
+  contaminationEvents ContaminationEvent[]
+
+  @@map("locations")
+}
+
+model EnvironmentalLog {
+  id               String       @id @default(uuid()) @db.Uuid
+  locationId       String       @map("location_id") @db.Uuid
+  recordedAt       DateTime     @default(now()) @map("recorded_at")
+  temperatureC     Decimal?     @map("temperature_c") @db.Decimal(5, 2)
+  humidityPct      Decimal?     @map("humidity_pct") @db.Decimal(5, 2)
+  lightPar         Decimal?     @map("light_par") @db.Decimal(8, 2)
+  photoperiodHours Decimal?     @map("photoperiod_hours") @db.Decimal(4, 2)
+  source           EnvLogSource @default(MANUAL)
+  sensorId         String?      @map("sensor_id")
+
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@index([locationId, recordedAt])
+  @@map("environmental_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Inventory & Orders
+// ─────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  contactEmail String?  @map("contact_email")
+  contactPhone String?  @map("contact_phone")
+  address      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  salesOrders SalesOrder[]
+
+  @@map("customers")
+}
+
+model SalesOrder {
+  id                String      @id @default(uuid()) @db.Uuid
+  customerId        String      @map("customer_id") @db.Uuid
+  orderDate         DateTime    @default(now()) @map("order_date")
+  status            OrderStatus @default(PENDING)
+  requestedShipDate DateTime?   @map("requested_ship_date") @db.Date
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  customer  Customer        @relation(fields: [customerId], references: [id])
+  lineItems OrderLineItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("sales_orders")
+}
+
+model OrderLineItem {
+  id                String  @id @default(uuid()) @db.Uuid
+  orderId           String  @map("order_id") @db.Uuid
+  speciesId         String  @map("species_id") @db.Uuid
+  quantityRequested Int     @map("quantity_requested")
+  quantityFulfilled Int     @default(0) @map("quantity_fulfilled")
+  unitPrice         Decimal @map("unit_price") @db.Decimal(10, 2)
+
+  order   SalesOrder   @relation(fields: [orderId], references: [id])
+  species PlantSpecies @relation(fields: [speciesId], references: [id])
+
+  fulfillments OrderFulfillment[]
+
+  @@index([orderId])
+  @@index([speciesId])
+  @@map("order_line_items")
+}
+
+model OrderFulfillment {
+  id                String    @id @default(uuid()) @db.Uuid
+  orderLineItemId   String    @map("order_line_item_id") @db.Uuid
+  vesselId          String    @map("vessel_id") @db.Uuid
+  shippedAt         DateTime? @map("shipped_at")
+  trackingReference String?   @map("tracking_reference")
+
+  orderLineItem OrderLineItem @relation(fields: [orderLineItemId], references: [id])
+  vessel        Vessel        @relation(fields: [vesselId], references: [id])
+
+  @@index([orderLineItemId])
+  @@index([vesselId])
+  @@map("order_fulfillments")
+}
