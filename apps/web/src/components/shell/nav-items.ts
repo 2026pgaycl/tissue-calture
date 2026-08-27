@@ -15,7 +15,10 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Overview",
-    items: [{ href: "/dashboard", label: "Dashboard" }],
+    items: [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/help", label: "Help" },
+    ],
   },
   {
     title: "Batch Tracking",
