@@ -22,5 +22,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Excludes Next.js internals plus any request for a static file (by extension) — anything
+  // under public/ (logo.png, favicon.ico, etc.) must stay servable with no session, or Next's
+  // image optimizer ends up trying to decode the redirect HTML as image bytes.
+  matcher: ["/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|woff2?)$).*)"],
 };
