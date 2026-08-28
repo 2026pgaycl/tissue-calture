@@ -15,8 +15,8 @@ npm run prisma:generate
 Once `DATABASE_URL` in `.env` points at a running PostgreSQL instance:
 
 ```bash
-npx prisma migrate deploy   # applies prisma/migrations/20260826222338_init
-npm run seed                # bootstraps the first admin user (SEED_ADMIN_EMAIL/PASSWORD in .env)
+npx prisma migrate deploy   # applies prisma/migrations/20260828130343_init_with_tenancy
+npm run seed                # bootstraps the first organization + admin user (SEED_ORG_*/SEED_ADMIN_* in .env)
 npm run start:dev
 ```
 
@@ -57,9 +57,19 @@ If this repo moves to a machine with its own Postgres (or you'd rather use the s
 | `common/` | `@Public()`/`@Roles()` decorators, `JwtAuthGuard`/`RolesGuard` (applied globally in `app.module.ts`), the shared error-envelope filter |
 | `prisma/` | `PrismaService` — Prisma Client wired to the `pg` driver adapter |
 
-**RBAC bootstrap:** `POST /users` requires `ADMIN`, so nothing can create the first admin through the API. Run `npm run seed` once against a fresh database to create one from `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` in `.env`.
+**RBAC bootstrap:** `POST /users` requires `ADMIN`, so nothing can create the first admin through the API. Run `npm run seed` once against a fresh database to create the first organization + admin from `SEED_ORG_*`/`SEED_ADMIN_*` in `.env`.
 
 **Deferred to Phase 2** (per [`docs/05-roadmap.md`](../../docs/05-roadmap.md), not built here): QC root-cause/mortality analytics, subculture yield projection, environmental logging, and the customers/sales-orders module. `docs/03-api-specification.md` documents their target shape.
+
+## Multi-tenancy
+
+Every table carries an `organization_id` FK (see [`docs/02-database-schema.md`](../../docs/02-database-schema.md)'s multi-tenancy note), and every service method scopes both reads and writes by `user.organizationId` from the JWT (added to `JwtPayload`/`AuthenticatedUser` in [`src/auth/jwt-payload.interface.ts`](src/auth/jwt-payload.interface.ts)). Verified live: a second organization's admin gets zero rows back from `/plant-species`, `/locations`, and `/batches` despite the first organization having real data.
+
+**What this does not yet cover:**
+
+- **Nested foreign keys aren't ownership-checked everywhere.** `Batch.parentBatchId` and `Vessel.batchId` are validated against the caller's org on create (the two with the highest blast radius — lineage and physical containers). Other nested references (a recipe's `gellingAgentId`, a recipe component's `chemicalId`, a contamination event's `workstationId`) aren't — a caller who already knows another org's UUID could point their own record at it. Lower severity (it doesn't expose the other org's data, just creates a dangling/incorrect reference) but still worth closing before this is a real multi-tenant deployment.
+- **No signup/organization-creation flow.** New organizations only exist via direct DB/seed access right now (see the isolation test in the commit history) — there's no `POST /organizations` or self-serve signup.
+- **Enforcement is manual, not systemic.** Every service method threads `organizationId` through by hand; nothing stops a future PR from adding a new `findMany` and forgetting the filter. A Prisma Client Extension that auto-injects `organizationId` into every query (keyed off request-scoped `AsyncLocalStorage`) would remove that risk — worth doing before this holds real customer data, not required to keep developing against it.
 
 ## Notes
 
@@ -74,7 +84,7 @@ If this repo moves to a machine with its own Postgres (or you'd rather use the s
 |---|---|
 | `npm run start:dev` | Run the API with file-watch reload |
 | `npm run build` / `npm run start:prod` | Compile to `dist/` and run it |
-| `npm run seed` | Bootstrap the first admin user |
+| `npm run seed` | Bootstrap the first organization + admin user |
 | `npm run prisma:generate` | Regenerate the Prisma Client |
 | `npm run prisma:migrate` | Create/apply a dev migration from schema changes |
 | `npm run prisma:studio` | Open Prisma Studio against `DATABASE_URL` |
