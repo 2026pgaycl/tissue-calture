@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateWorkstationDto } from "./subculture.dto";
 
@@ -6,11 +6,11 @@ import { CreateWorkstationDto } from "./subculture.dto";
 export class WorkstationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.workstation.findMany({ orderBy: { name: "asc" } });
+  findAll(organizationId: string) {
+    return this.prisma.workstation.findMany({ where: { organizationId }, orderBy: { name: "asc" } });
   }
 
-  create(dto: CreateWorkstationDto) {
-    return this.prisma.workstation.create({ data: dto });
+  create(dto: CreateWorkstationDto, organizationId: string) {
+    return this.prisma.workstation.create({ data: { ...dto, organizationId } });
   }
 }

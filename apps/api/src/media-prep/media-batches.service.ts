@@ -1,4 +1,4 @@
-﻿import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AutoclaveLogDto, CreateMediaBatchDto } from "./media-prep.dto";
 import { generateBarcode } from "../common/utils/barcode.util";
@@ -8,20 +8,20 @@ import type { AuthenticatedUser } from "../auth/jwt-payload.interface";
 export class MediaBatchesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.mediaBatch.findMany({ orderBy: { preparedAt: "desc" } });
+  findAll(organizationId: string) {
+    return this.prisma.mediaBatch.findMany({ where: { organizationId }, orderBy: { preparedAt: "desc" } });
   }
 
-  async findOne(id: string) {
-    const batch = await this.prisma.mediaBatch.findUnique({ where: { id } });
+  async findOne(id: string, organizationId: string) {
+    const batch = await this.prisma.mediaBatch.findFirst({ where: { id, organizationId } });
     if (!batch) throw new NotFoundException("Media batch not found");
     return batch;
   }
 
   /** Creates the media batch and deducts each recipe component from chemical stock, atomically. */
   async create(dto: CreateMediaBatchDto, user: AuthenticatedUser) {
-    const recipe = await this.prisma.mediaRecipe.findUnique({
-      where: { id: dto.recipeId },
+    const recipe = await this.prisma.mediaRecipe.findFirst({
+      where: { id: dto.recipeId, organizationId: user.organizationId },
       include: { components: { include: { chemical: true } } },
     });
     if (!recipe) throw new NotFoundException("Recipe not found");
@@ -45,6 +45,7 @@ export class MediaBatchesService {
     return this.prisma.$transaction(async (tx) => {
       const mediaBatch = await tx.mediaBatch.create({
         data: {
+          organizationId: user.organizationId,
           barcode: generateBarcode("MED"),
           recipeId: dto.recipeId,
           targetVolumeL: dto.targetVolumeL,
@@ -60,6 +61,7 @@ export class MediaBatchesService {
         });
         await tx.inventoryTransaction.create({
           data: {
+            organizationId: user.organizationId,
             chemicalId: r.chemicalId,
             transactionType: "DEDUCTION",
             quantity: r.qty,
@@ -74,10 +76,11 @@ export class MediaBatchesService {
   }
 
   async logAutoclave(id: string, dto: AutoclaveLogDto, user: AuthenticatedUser) {
-    await this.findOne(id);
+    await this.findOne(id, user.organizationId);
     return this.prisma.$transaction(async (tx) => {
       const log = await tx.autoclaveLog.create({
         data: {
+          organizationId: user.organizationId,
           mediaBatchId: id,
           cycleDate: new Date(dto.cycleDate),
           temperatureC: dto.temperatureC,

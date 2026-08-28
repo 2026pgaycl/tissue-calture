@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateLocationDto } from "./reference-data.dto";
 
@@ -6,11 +6,11 @@ import { CreateLocationDto } from "./reference-data.dto";
 export class LocationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.location.findMany({ orderBy: { name: "asc" } });
+  findAll(organizationId: string) {
+    return this.prisma.location.findMany({ where: { organizationId }, orderBy: { name: "asc" } });
   }
 
-  create(dto: CreateLocationDto) {
-    return this.prisma.location.create({ data: dto });
+  create(dto: CreateLocationDto, organizationId: string) {
+    return this.prisma.location.create({ data: { ...dto, organizationId } });
   }
 }

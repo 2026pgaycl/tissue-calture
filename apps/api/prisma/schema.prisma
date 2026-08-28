@@ -128,18 +128,60 @@ enum OrderStatus {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Tenancy
+// ─────────────────────────────────────────────────────────────────────────
+
+// Shared-database multi-tenancy: every business table below carries an organizationId FK
+// (denormalized directly onto each table, not just derivable via joins) so every query can
+// filter WHERE organization_id = $1 without relying on a join chain to enforce isolation.
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users                    User[]
+  plantSpecies             PlantSpecies[]
+  batches                  Batch[]
+  vessels                  Vessel[]
+  workstations             Workstation[]
+  subcultureSessions       SubcultureSession[]
+  subcultureSessionVessels SubcultureSessionVessel[]
+  chemicals                Chemical[]
+  mediaRecipes             MediaRecipe[]
+  recipeComponents         RecipeComponent[]
+  mediaBatches             MediaBatch[]
+  autoclaveLogs            AutoclaveLog[]
+  inventoryTransactions    InventoryTransaction[]
+  contaminationEvents      ContaminationEvent[]
+  discardLogs              DiscardLog[]
+  locations                Location[]
+  environmentalLogs        EnvironmentalLog[]
+  customers                Customer[]
+  salesOrders              SalesOrder[]
+  orderLineItems           OrderLineItem[]
+  orderFulfillments        OrderFulfillment[]
+
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Identity
 // ─────────────────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  role           Role
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   createdBatches        Batch[]                @relation("BatchCreatedBy")
   subcultureSessions    SubcultureSession[]    @relation("SessionOperator")
@@ -150,6 +192,11 @@ model User {
   contaminationEvents   ContaminationEvent[]   @relation("ContaminationDetectedBy")
   discardLogs           DiscardLog[]           @relation("DiscardedBy")
 
+  // Email stays globally unique (one account = one org) rather than unique-per-org — the
+  // latter needs the login form to know which org to check against before it has the user's
+  // password, which means resolving tenancy some other way first (subdomain, an org picker).
+  // Revisit if a real need for one person in multiple orgs shows up.
+  @@index([organizationId])
   @@map("users")
 }
 
@@ -159,28 +206,35 @@ model User {
 
 model PlantSpecies {
   id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
   name           String
   scientificName String?  @map("scientific_name")
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   batches        Batch[]
   orderLineItems OrderLineItem[]
 
+  @@index([organizationId])
   @@map("plant_species")
 }
 
 model Batch {
-  id            String      @id @default(uuid()) @db.Uuid
-  parentBatchId String?     @map("parent_batch_id") @db.Uuid
-  speciesId     String      @map("species_id") @db.Uuid
-  stage         BatchStage
-  sourceType    SourceType? @map("source_type")
-  status        BatchStatus @default(ACTIVE)
-  createdById   String      @map("created_by") @db.Uuid
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  parentBatchId  String?     @map("parent_batch_id") @db.Uuid
+  speciesId      String      @map("species_id") @db.Uuid
+  stage          BatchStage
+  sourceType     SourceType? @map("source_type")
+  status         BatchStatus @default(ACTIVE)
+  createdById    String      @map("created_by") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   parentBatch  Batch?  @relation("BatchLineage", fields: [parentBatchId], references: [id])
   childBatches Batch[] @relation("BatchLineage")
@@ -189,6 +243,7 @@ model Batch {
   createdBy User         @relation("BatchCreatedBy", fields: [createdById], references: [id])
   vessels   Vessel[]
 
+  @@index([organizationId])
   @@index([parentBatchId])
   @@index([speciesId])
   @@index([stage, status])
@@ -197,6 +252,7 @@ model Batch {
 
 model Vessel {
   id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
   barcode        String       @unique
   batchId        String       @map("batch_id") @db.Uuid
   parentVesselId String?      @map("parent_vessel_id") @db.Uuid
@@ -206,6 +262,8 @@ model Vessel {
   status         VesselStatus @default(ACTIVE)
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   parentVessel Vessel?  @relation("VesselLineage", fields: [parentVesselId], references: [id])
   childVessels Vessel[] @relation("VesselLineage")
@@ -219,6 +277,7 @@ model Vessel {
   discardLogs              DiscardLog[]
   orderFulfillments        OrderFulfillment[]
 
+  @@index([organizationId])
   @@index([batchId])
   @@index([parentVesselId])
   @@index([mediaBatchId])
@@ -233,6 +292,7 @@ model Vessel {
 
 model Workstation {
   id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
   name              String
   locationId        String    @map("location_id") @db.Uuid
   hoodType          String?   @map("hood_type")
@@ -240,44 +300,55 @@ model Workstation {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   location            Location             @relation(fields: [locationId], references: [id])
   subcultureSessions  SubcultureSession[]
   contaminationEvents ContaminationEvent[]
 
+  @@index([organizationId])
   @@index([locationId])
   @@map("workstations")
 }
 
 model SubcultureSession {
-  id            String    @id @default(uuid()) @db.Uuid
-  workstationId String    @map("workstation_id") @db.Uuid
-  operatorId    String    @map("operator_id") @db.Uuid
-  startedAt     DateTime  @default(now()) @map("started_at")
-  endedAt       DateTime? @map("ended_at")
-  splitRatio    String?   @map("split_ratio")
-  notes         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  workstationId  String    @map("workstation_id") @db.Uuid
+  operatorId     String    @map("operator_id") @db.Uuid
+  startedAt      DateTime  @default(now()) @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+  splitRatio     String?   @map("split_ratio")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   workstation Workstation @relation(fields: [workstationId], references: [id])
   operator    User        @relation("SessionOperator", fields: [operatorId], references: [id])
 
   sessionVessels SubcultureSessionVessel[]
 
+  @@index([organizationId])
   @@index([workstationId])
   @@index([operatorId])
   @@map("subculture_sessions")
 }
 
 model SubcultureSessionVessel {
-  sessionId String              @map("session_id") @db.Uuid
-  vesselId  String              @map("vessel_id") @db.Uuid
-  direction SubcultureDirection
+  organizationId String              @map("organization_id") @db.Uuid
+  sessionId      String              @map("session_id") @db.Uuid
+  vesselId       String              @map("vessel_id") @db.Uuid
+  direction      SubcultureDirection
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   session SubcultureSession @relation(fields: [sessionId], references: [id])
   vessel  Vessel            @relation(fields: [vesselId], references: [id])
 
   @@id([sessionId, vesselId, direction])
+  @@index([organizationId])
   @@index([vesselId])
   @@map("subculture_session_vessels")
 }
@@ -288,6 +359,7 @@ model SubcultureSessionVessel {
 
 model Chemical {
   id                 String           @id @default(uuid()) @db.Uuid
+  organizationId     String           @map("organization_id") @db.Uuid
   name               String
   category           ChemicalCategory
   stockConcentration Decimal          @map("stock_concentration") @db.Decimal(12, 4)
@@ -298,16 +370,20 @@ model Chemical {
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   recipeComponents      RecipeComponent[]
   inventoryTransactions InventoryTransaction[]
   gellingForRecipes     MediaRecipe[]          @relation("RecipeGellingAgent")
 
+  @@index([organizationId])
   @@index([category])
   @@map("chemicals")
 }
 
 model MediaRecipe {
   id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
   name           String
   basalMediaType String   @map("basal_media_type")
   targetPh       Decimal  @map("target_ph") @db.Decimal(4, 2)
@@ -316,26 +392,33 @@ model MediaRecipe {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   gellingAgent Chemical? @relation("RecipeGellingAgent", fields: [gellingAgentId], references: [id])
   createdBy    User      @relation("RecipeCreatedBy", fields: [createdById], references: [id])
 
   components   RecipeComponent[]
   mediaBatches MediaBatch[]
 
+  @@index([organizationId])
   @@index([createdById])
   @@map("media_recipes")
 }
 
 model RecipeComponent {
-  id            String  @id @default(uuid()) @db.Uuid
-  recipeId      String  @map("recipe_id") @db.Uuid
-  chemicalId    String  @map("chemical_id") @db.Uuid
-  concentration Decimal @db.Decimal(12, 4)
-  unit          String
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  recipeId       String  @map("recipe_id") @db.Uuid
+  chemicalId     String  @map("chemical_id") @db.Uuid
+  concentration  Decimal @db.Decimal(12, 4)
+  unit           String
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   recipe   MediaRecipe @relation(fields: [recipeId], references: [id])
   chemical Chemical    @relation(fields: [chemicalId], references: [id])
 
+  @@index([organizationId])
   @@index([recipeId])
   @@index([chemicalId])
   @@map("recipe_components")
@@ -343,6 +426,7 @@ model RecipeComponent {
 
 model MediaBatch {
   id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
   barcode        String           @unique
   recipeId       String           @map("recipe_id") @db.Uuid
   targetVolumeL  Decimal          @map("target_volume_l") @db.Decimal(10, 3)
@@ -354,6 +438,8 @@ model MediaBatch {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   recipe     MediaRecipe @relation(fields: [recipeId], references: [id])
   preparedBy User        @relation("MediaBatchPreparedBy", fields: [preparedById], references: [id])
 
@@ -362,31 +448,37 @@ model MediaBatch {
   inventoryTransactions InventoryTransaction[]
   contaminationEvents   ContaminationEvent[]
 
+  @@index([organizationId])
   @@index([recipeId])
   @@index([status])
   @@map("media_batches")
 }
 
 model AutoclaveLog {
-  id           String          @id @default(uuid()) @db.Uuid
-  mediaBatchId String          @map("media_batch_id") @db.Uuid
-  cycleDate    DateTime        @map("cycle_date")
-  temperatureC Decimal         @map("temperature_c") @db.Decimal(5, 2)
-  pressureKpa  Decimal         @map("pressure_kpa") @db.Decimal(6, 2)
-  durationMin  Int             @map("duration_min")
-  operatorId   String          @map("operator_id") @db.Uuid
-  result       AutoclaveResult
-  createdAt    DateTime        @default(now()) @map("created_at")
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  mediaBatchId   String          @map("media_batch_id") @db.Uuid
+  cycleDate      DateTime        @map("cycle_date")
+  temperatureC   Decimal         @map("temperature_c") @db.Decimal(5, 2)
+  pressureKpa    Decimal         @map("pressure_kpa") @db.Decimal(6, 2)
+  durationMin    Int             @map("duration_min")
+  operatorId     String          @map("operator_id") @db.Uuid
+  result         AutoclaveResult
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   mediaBatch MediaBatch @relation(fields: [mediaBatchId], references: [id])
   operator   User       @relation("AutoclaveOperator", fields: [operatorId], references: [id])
 
+  @@index([organizationId])
   @@index([mediaBatchId])
   @@map("autoclave_logs")
 }
 
 model InventoryTransaction {
   id                  String                   @id @default(uuid()) @db.Uuid
+  organizationId      String                   @map("organization_id") @db.Uuid
   chemicalId          String                   @map("chemical_id") @db.Uuid
   transactionType     InventoryTransactionType @map("transaction_type")
   quantity            Decimal                  @db.Decimal(12, 4)
@@ -394,10 +486,13 @@ model InventoryTransaction {
   operatorId          String                   @map("operator_id") @db.Uuid
   occurredAt          DateTime                 @default(now()) @map("occurred_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   chemical          Chemical    @relation(fields: [chemicalId], references: [id])
   relatedMediaBatch MediaBatch? @relation(fields: [relatedMediaBatchId], references: [id])
   operator          User        @relation("InventoryOperator", fields: [operatorId], references: [id])
 
+  @@index([organizationId])
   @@index([chemicalId])
   @@index([relatedMediaBatchId])
   @@map("inventory_transactions")
@@ -409,6 +504,7 @@ model InventoryTransaction {
 
 model ContaminationEvent {
   id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @map("organization_id") @db.Uuid
   vesselId          String              @map("vessel_id") @db.Uuid
   contaminationType ContaminationType   @map("contamination_type")
   // media batch & workstation are snapshotted at detection time (not live-derived from the
@@ -423,12 +519,15 @@ model ContaminationEvent {
   actionTaken       ContaminationAction @map("action_taken")
   createdAt         DateTime            @default(now()) @map("created_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   vessel      Vessel       @relation(fields: [vesselId], references: [id])
   mediaBatch  MediaBatch?  @relation(fields: [mediaBatchId], references: [id])
   workstation Workstation? @relation(fields: [workstationId], references: [id])
   location    Location     @relation(fields: [locationId], references: [id])
   detectedBy  User         @relation("ContaminationDetectedBy", fields: [detectedById], references: [id])
 
+  @@index([organizationId])
   @@index([vesselId])
   @@index([mediaBatchId])
   @@index([workstationId])
@@ -439,15 +538,19 @@ model ContaminationEvent {
 
 model DiscardLog {
   id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
   vesselId       String        @map("vessel_id") @db.Uuid
   reason         DiscardReason
   stageAtDiscard BatchStage    @map("stage_at_discard")
   discardedById  String        @map("discarded_by") @db.Uuid
   discardedAt    DateTime      @default(now()) @map("discarded_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   vessel      Vessel @relation(fields: [vesselId], references: [id])
   discardedBy User   @relation("DiscardedBy", fields: [discardedById], references: [id])
 
+  @@index([organizationId])
   @@index([vesselId])
   @@map("discard_logs")
 }
@@ -457,22 +560,27 @@ model DiscardLog {
 // ─────────────────────────────────────────────────────────────────────────
 
 model Location {
-  id        String       @id @default(uuid()) @db.Uuid
-  name      String
-  type      LocationType
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  type           LocationType
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   vessels             Vessel[]
   workstations        Workstation[]
   environmentalLogs   EnvironmentalLog[]
   contaminationEvents ContaminationEvent[]
 
+  @@index([organizationId])
   @@map("locations")
 }
 
 model EnvironmentalLog {
   id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
   locationId       String       @map("location_id") @db.Uuid
   recordedAt       DateTime     @default(now()) @map("recorded_at")
   temperatureC     Decimal?     @map("temperature_c") @db.Decimal(5, 2)
@@ -482,8 +590,11 @@ model EnvironmentalLog {
   source           EnvLogSource @default(MANUAL)
   sensorId         String?      @map("sensor_id")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   location Location @relation(fields: [locationId], references: [id])
 
+  @@index([organizationId])
   @@index([locationId, recordedAt])
   @@map("environmental_logs")
 }
@@ -493,21 +604,26 @@ model EnvironmentalLog {
 // ─────────────────────────────────────────────────────────────────────────
 
 model Customer {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String
-  contactEmail String?  @map("contact_email")
-  contactPhone String?  @map("contact_phone")
-  address      String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  contactEmail   String?  @map("contact_email")
+  contactPhone   String?  @map("contact_phone")
+  address        String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   salesOrders SalesOrder[]
 
+  @@index([organizationId])
   @@map("customers")
 }
 
 model SalesOrder {
   id                String      @id @default(uuid()) @db.Uuid
+  organizationId    String      @map("organization_id") @db.Uuid
   customerId        String      @map("customer_id") @db.Uuid
   orderDate         DateTime    @default(now()) @map("order_date")
   status            OrderStatus @default(PENDING)
@@ -515,9 +631,12 @@ model SalesOrder {
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   customer  Customer        @relation(fields: [customerId], references: [id])
   lineItems OrderLineItem[]
 
+  @@index([organizationId])
   @@index([customerId])
   @@index([status])
   @@map("sales_orders")
@@ -525,17 +644,21 @@ model SalesOrder {
 
 model OrderLineItem {
   id                String  @id @default(uuid()) @db.Uuid
+  organizationId    String  @map("organization_id") @db.Uuid
   orderId           String  @map("order_id") @db.Uuid
   speciesId         String  @map("species_id") @db.Uuid
   quantityRequested Int     @map("quantity_requested")
   quantityFulfilled Int     @default(0) @map("quantity_fulfilled")
   unitPrice         Decimal @map("unit_price") @db.Decimal(10, 2)
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   order   SalesOrder   @relation(fields: [orderId], references: [id])
   species PlantSpecies @relation(fields: [speciesId], references: [id])
 
   fulfillments OrderFulfillment[]
 
+  @@index([organizationId])
   @@index([orderId])
   @@index([speciesId])
   @@map("order_line_items")
@@ -543,14 +666,18 @@ model OrderLineItem {
 
 model OrderFulfillment {
   id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
   orderLineItemId   String    @map("order_line_item_id") @db.Uuid
   vesselId          String    @map("vessel_id") @db.Uuid
   shippedAt         DateTime? @map("shipped_at")
   trackingReference String?   @map("tracking_reference")
 
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   orderLineItem OrderLineItem @relation(fields: [orderLineItemId], references: [id])
   vessel        Vessel        @relation(fields: [vesselId], references: [id])
 
+  @@index([organizationId])
   @@index([orderLineItemId])
   @@index([vesselId])
   @@map("order_fulfillments")

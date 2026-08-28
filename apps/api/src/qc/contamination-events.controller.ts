@@ -13,12 +13,18 @@ export class ContaminationEventsController {
 
   @Get()
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query("contaminationType") contaminationType?: string,
     @Query("mediaBatchId") mediaBatchId?: string,
     @Query("workstationId") workstationId?: string,
     @Query("locationId") locationId?: string,
   ) {
-    return this.service.findAll({ contaminationType, mediaBatchId, workstationId, locationId });
+    return this.service.findAll(user.organizationId, {
+      contaminationType,
+      mediaBatchId,
+      workstationId,
+      locationId,
+    });
   }
 
   @Post()

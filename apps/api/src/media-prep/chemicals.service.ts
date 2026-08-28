@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AdjustStockDto, CreateChemicalDto } from "./media-prep.dto";
 import type { AuthenticatedUser } from "../auth/jwt-payload.interface";
@@ -7,18 +7,20 @@ import type { AuthenticatedUser } from "../auth/jwt-payload.interface";
 export class ChemicalsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.chemical.findMany({ orderBy: { name: "asc" } });
+  findAll(organizationId: string) {
+    return this.prisma.chemical.findMany({ where: { organizationId }, orderBy: { name: "asc" } });
   }
 
-  create(dto: CreateChemicalDto) {
+  create(dto: CreateChemicalDto, organizationId: string) {
     return this.prisma.chemical.create({
-      data: { ...dto, currentStockQty: dto.currentStockQty ?? 0 },
+      data: { ...dto, organizationId, currentStockQty: dto.currentStockQty ?? 0 },
     });
   }
 
   async adjustStock(id: string, dto: AdjustStockDto, user: AuthenticatedUser) {
-    const chemical = await this.prisma.chemical.findUnique({ where: { id } });
+    const chemical = await this.prisma.chemical.findFirst({
+      where: { id, organizationId: user.organizationId },
+    });
     if (!chemical) throw new NotFoundException("Chemical not found");
 
     return this.prisma.$transaction(async (tx) => {
@@ -28,6 +30,7 @@ export class ChemicalsService {
       });
       await tx.inventoryTransaction.create({
         data: {
+          organizationId: user.organizationId,
           chemicalId: id,
           transactionType: dto.quantity >= 0 ? "RECEIPT" : "ADJUSTMENT",
           quantity: dto.quantity,
@@ -38,13 +41,13 @@ export class ChemicalsService {
     });
   }
 
-  lowStock() {
+  lowStock(organizationId: string) {
     return this.prisma.$queryRaw`
       SELECT
         id, name, category, stock_concentration AS "stockConcentration", unit,
         current_stock_qty AS "currentStockQty", reorder_threshold AS "reorderThreshold", supplier
       FROM chemicals
-      WHERE current_stock_qty <= reorder_threshold
+      WHERE current_stock_qty <= reorder_threshold AND organization_id = ${organizationId}::uuid
       ORDER BY name ASC;
     `;
   }

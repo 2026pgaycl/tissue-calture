@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'LAB_MANAGER', 'LAB_TECHNICIAN', 'MEDIA_PREP_STAFF');
 
@@ -53,8 +50,20 @@ CREATE TYPE "EnvLogSource" AS ENUM ('MANUAL', 'IOT');
 CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PARTIALLY_FULFILLED', 'FULFILLED', 'CANCELLED');
 
 -- CreateTable
+CREATE TABLE "organizations" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "organizations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "users" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
@@ -69,6 +78,7 @@ CREATE TABLE "users" (
 -- CreateTable
 CREATE TABLE "plant_species" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "scientific_name" TEXT,
     "notes" TEXT,
@@ -81,6 +91,7 @@ CREATE TABLE "plant_species" (
 -- CreateTable
 CREATE TABLE "batches" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "parent_batch_id" UUID,
     "species_id" UUID NOT NULL,
     "stage" "BatchStage" NOT NULL,
@@ -96,6 +107,7 @@ CREATE TABLE "batches" (
 -- CreateTable
 CREATE TABLE "vessels" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "barcode" TEXT NOT NULL,
     "batch_id" UUID NOT NULL,
     "parent_vessel_id" UUID,
@@ -112,6 +124,7 @@ CREATE TABLE "vessels" (
 -- CreateTable
 CREATE TABLE "workstations" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "location_id" UUID NOT NULL,
     "hood_type" TEXT,
@@ -125,6 +138,7 @@ CREATE TABLE "workstations" (
 -- CreateTable
 CREATE TABLE "subculture_sessions" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "workstation_id" UUID NOT NULL,
     "operator_id" UUID NOT NULL,
     "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -139,6 +153,7 @@ CREATE TABLE "subculture_sessions" (
 
 -- CreateTable
 CREATE TABLE "subculture_session_vessels" (
+    "organization_id" UUID NOT NULL,
     "session_id" UUID NOT NULL,
     "vessel_id" UUID NOT NULL,
     "direction" "SubcultureDirection" NOT NULL,
@@ -149,6 +164,7 @@ CREATE TABLE "subculture_session_vessels" (
 -- CreateTable
 CREATE TABLE "chemicals" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "category" "ChemicalCategory" NOT NULL,
     "stock_concentration" DECIMAL(12,4) NOT NULL,
@@ -165,6 +181,7 @@ CREATE TABLE "chemicals" (
 -- CreateTable
 CREATE TABLE "media_recipes" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "basal_media_type" TEXT NOT NULL,
     "target_ph" DECIMAL(4,2) NOT NULL,
@@ -179,6 +196,7 @@ CREATE TABLE "media_recipes" (
 -- CreateTable
 CREATE TABLE "recipe_components" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "recipe_id" UUID NOT NULL,
     "chemical_id" UUID NOT NULL,
     "concentration" DECIMAL(12,4) NOT NULL,
@@ -190,6 +208,7 @@ CREATE TABLE "recipe_components" (
 -- CreateTable
 CREATE TABLE "media_batches" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "barcode" TEXT NOT NULL,
     "recipe_id" UUID NOT NULL,
     "target_volume_l" DECIMAL(10,3) NOT NULL,
@@ -207,6 +226,7 @@ CREATE TABLE "media_batches" (
 -- CreateTable
 CREATE TABLE "autoclave_logs" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "media_batch_id" UUID NOT NULL,
     "cycle_date" TIMESTAMP(3) NOT NULL,
     "temperature_c" DECIMAL(5,2) NOT NULL,
@@ -222,6 +242,7 @@ CREATE TABLE "autoclave_logs" (
 -- CreateTable
 CREATE TABLE "inventory_transactions" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "chemical_id" UUID NOT NULL,
     "transaction_type" "InventoryTransactionType" NOT NULL,
     "quantity" DECIMAL(12,4) NOT NULL,
@@ -235,6 +256,7 @@ CREATE TABLE "inventory_transactions" (
 -- CreateTable
 CREATE TABLE "contamination_events" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "vessel_id" UUID NOT NULL,
     "contamination_type" "ContaminationType" NOT NULL,
     "media_batch_id" UUID,
@@ -252,6 +274,7 @@ CREATE TABLE "contamination_events" (
 -- CreateTable
 CREATE TABLE "discard_logs" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "vessel_id" UUID NOT NULL,
     "reason" "DiscardReason" NOT NULL,
     "stage_at_discard" "BatchStage" NOT NULL,
@@ -264,6 +287,7 @@ CREATE TABLE "discard_logs" (
 -- CreateTable
 CREATE TABLE "locations" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "type" "LocationType" NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -275,6 +299,7 @@ CREATE TABLE "locations" (
 -- CreateTable
 CREATE TABLE "environmental_logs" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "location_id" UUID NOT NULL,
     "recorded_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "temperature_c" DECIMAL(5,2),
@@ -290,6 +315,7 @@ CREATE TABLE "environmental_logs" (
 -- CreateTable
 CREATE TABLE "customers" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "contact_email" TEXT,
     "contact_phone" TEXT,
@@ -303,6 +329,7 @@ CREATE TABLE "customers" (
 -- CreateTable
 CREATE TABLE "sales_orders" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "customer_id" UUID NOT NULL,
     "order_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
@@ -316,6 +343,7 @@ CREATE TABLE "sales_orders" (
 -- CreateTable
 CREATE TABLE "order_line_items" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "order_id" UUID NOT NULL,
     "species_id" UUID NOT NULL,
     "quantity_requested" INTEGER NOT NULL,
@@ -328,6 +356,7 @@ CREATE TABLE "order_line_items" (
 -- CreateTable
 CREATE TABLE "order_fulfillments" (
     "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
     "order_line_item_id" UUID NOT NULL,
     "vessel_id" UUID NOT NULL,
     "shipped_at" TIMESTAMP(3),
@@ -337,7 +366,19 @@ CREATE TABLE "order_fulfillments" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "organizations_slug_key" ON "organizations"("slug");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE INDEX "users_organization_id_idx" ON "users"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "plant_species_organization_id_idx" ON "plant_species"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "batches_organization_id_idx" ON "batches"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "batches_parent_batch_id_idx" ON "batches"("parent_batch_id");
@@ -350,6 +391,9 @@ CREATE INDEX "batches_stage_status_idx" ON "batches"("stage", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "vessels_barcode_key" ON "vessels"("barcode");
+
+-- CreateIndex
+CREATE INDEX "vessels_organization_id_idx" ON "vessels"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "vessels_batch_id_idx" ON "vessels"("batch_id");
@@ -367,7 +411,13 @@ CREATE INDEX "vessels_location_id_idx" ON "vessels"("location_id");
 CREATE INDEX "vessels_status_idx" ON "vessels"("status");
 
 -- CreateIndex
+CREATE INDEX "workstations_organization_id_idx" ON "workstations"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "workstations_location_id_idx" ON "workstations"("location_id");
+
+-- CreateIndex
+CREATE INDEX "subculture_sessions_organization_id_idx" ON "subculture_sessions"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "subculture_sessions_workstation_id_idx" ON "subculture_sessions"("workstation_id");
@@ -376,13 +426,25 @@ CREATE INDEX "subculture_sessions_workstation_id_idx" ON "subculture_sessions"("
 CREATE INDEX "subculture_sessions_operator_id_idx" ON "subculture_sessions"("operator_id");
 
 -- CreateIndex
+CREATE INDEX "subculture_session_vessels_organization_id_idx" ON "subculture_session_vessels"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "subculture_session_vessels_vessel_id_idx" ON "subculture_session_vessels"("vessel_id");
+
+-- CreateIndex
+CREATE INDEX "chemicals_organization_id_idx" ON "chemicals"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "chemicals_category_idx" ON "chemicals"("category");
 
 -- CreateIndex
+CREATE INDEX "media_recipes_organization_id_idx" ON "media_recipes"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "media_recipes_created_by_idx" ON "media_recipes"("created_by");
+
+-- CreateIndex
+CREATE INDEX "recipe_components_organization_id_idx" ON "recipe_components"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "recipe_components_recipe_id_idx" ON "recipe_components"("recipe_id");
@@ -394,19 +456,31 @@ CREATE INDEX "recipe_components_chemical_id_idx" ON "recipe_components"("chemica
 CREATE UNIQUE INDEX "media_batches_barcode_key" ON "media_batches"("barcode");
 
 -- CreateIndex
+CREATE INDEX "media_batches_organization_id_idx" ON "media_batches"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "media_batches_recipe_id_idx" ON "media_batches"("recipe_id");
 
 -- CreateIndex
 CREATE INDEX "media_batches_status_idx" ON "media_batches"("status");
 
 -- CreateIndex
+CREATE INDEX "autoclave_logs_organization_id_idx" ON "autoclave_logs"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "autoclave_logs_media_batch_id_idx" ON "autoclave_logs"("media_batch_id");
+
+-- CreateIndex
+CREATE INDEX "inventory_transactions_organization_id_idx" ON "inventory_transactions"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "inventory_transactions_chemical_id_idx" ON "inventory_transactions"("chemical_id");
 
 -- CreateIndex
 CREATE INDEX "inventory_transactions_related_media_batch_id_idx" ON "inventory_transactions"("related_media_batch_id");
+
+-- CreateIndex
+CREATE INDEX "contamination_events_organization_id_idx" ON "contamination_events"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "contamination_events_vessel_id_idx" ON "contamination_events"("vessel_id");
@@ -424,10 +498,25 @@ CREATE INDEX "contamination_events_location_id_idx" ON "contamination_events"("l
 CREATE INDEX "contamination_events_contamination_type_idx" ON "contamination_events"("contamination_type");
 
 -- CreateIndex
+CREATE INDEX "discard_logs_organization_id_idx" ON "discard_logs"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "discard_logs_vessel_id_idx" ON "discard_logs"("vessel_id");
 
 -- CreateIndex
+CREATE INDEX "locations_organization_id_idx" ON "locations"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "environmental_logs_organization_id_idx" ON "environmental_logs"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "environmental_logs_location_id_recorded_at_idx" ON "environmental_logs"("location_id", "recorded_at");
+
+-- CreateIndex
+CREATE INDEX "customers_organization_id_idx" ON "customers"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "sales_orders_organization_id_idx" ON "sales_orders"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "sales_orders_customer_id_idx" ON "sales_orders"("customer_id");
@@ -436,16 +525,31 @@ CREATE INDEX "sales_orders_customer_id_idx" ON "sales_orders"("customer_id");
 CREATE INDEX "sales_orders_status_idx" ON "sales_orders"("status");
 
 -- CreateIndex
+CREATE INDEX "order_line_items_organization_id_idx" ON "order_line_items"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "order_line_items_order_id_idx" ON "order_line_items"("order_id");
 
 -- CreateIndex
 CREATE INDEX "order_line_items_species_id_idx" ON "order_line_items"("species_id");
 
 -- CreateIndex
+CREATE INDEX "order_fulfillments_organization_id_idx" ON "order_fulfillments"("organization_id");
+
+-- CreateIndex
 CREATE INDEX "order_fulfillments_order_line_item_id_idx" ON "order_fulfillments"("order_line_item_id");
 
 -- CreateIndex
 CREATE INDEX "order_fulfillments_vessel_id_idx" ON "order_fulfillments"("vessel_id");
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "plant_species" ADD CONSTRAINT "plant_species_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "batches" ADD CONSTRAINT "batches_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "batches" ADD CONSTRAINT "batches_parent_batch_id_fkey" FOREIGN KEY ("parent_batch_id") REFERENCES "batches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -455,6 +559,9 @@ ALTER TABLE "batches" ADD CONSTRAINT "batches_species_id_fkey" FOREIGN KEY ("spe
 
 -- AddForeignKey
 ALTER TABLE "batches" ADD CONSTRAINT "batches_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "vessels" ADD CONSTRAINT "vessels_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "vessels" ADD CONSTRAINT "vessels_parent_vessel_id_fkey" FOREIGN KEY ("parent_vessel_id") REFERENCES "vessels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -469,7 +576,13 @@ ALTER TABLE "vessels" ADD CONSTRAINT "vessels_media_batch_id_fkey" FOREIGN KEY (
 ALTER TABLE "vessels" ADD CONSTRAINT "vessels_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "workstations" ADD CONSTRAINT "workstations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "workstations" ADD CONSTRAINT "workstations_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subculture_sessions" ADD CONSTRAINT "subculture_sessions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "subculture_sessions" ADD CONSTRAINT "subculture_sessions_workstation_id_fkey" FOREIGN KEY ("workstation_id") REFERENCES "workstations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -478,10 +591,19 @@ ALTER TABLE "subculture_sessions" ADD CONSTRAINT "subculture_sessions_workstatio
 ALTER TABLE "subculture_sessions" ADD CONSTRAINT "subculture_sessions_operator_id_fkey" FOREIGN KEY ("operator_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "subculture_session_vessels" ADD CONSTRAINT "subculture_session_vessels_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "subculture_session_vessels" ADD CONSTRAINT "subculture_session_vessels_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "subculture_sessions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "subculture_session_vessels" ADD CONSTRAINT "subculture_session_vessels_vessel_id_fkey" FOREIGN KEY ("vessel_id") REFERENCES "vessels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "chemicals" ADD CONSTRAINT "chemicals_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "media_recipes" ADD CONSTRAINT "media_recipes_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "media_recipes" ADD CONSTRAINT "media_recipes_gelling_agent_id_fkey" FOREIGN KEY ("gelling_agent_id") REFERENCES "chemicals"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -490,10 +612,16 @@ ALTER TABLE "media_recipes" ADD CONSTRAINT "media_recipes_gelling_agent_id_fkey"
 ALTER TABLE "media_recipes" ADD CONSTRAINT "media_recipes_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "recipe_components" ADD CONSTRAINT "recipe_components_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "recipe_components" ADD CONSTRAINT "recipe_components_recipe_id_fkey" FOREIGN KEY ("recipe_id") REFERENCES "media_recipes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "recipe_components" ADD CONSTRAINT "recipe_components_chemical_id_fkey" FOREIGN KEY ("chemical_id") REFERENCES "chemicals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "media_batches" ADD CONSTRAINT "media_batches_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "media_batches" ADD CONSTRAINT "media_batches_recipe_id_fkey" FOREIGN KEY ("recipe_id") REFERENCES "media_recipes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -502,10 +630,16 @@ ALTER TABLE "media_batches" ADD CONSTRAINT "media_batches_recipe_id_fkey" FOREIG
 ALTER TABLE "media_batches" ADD CONSTRAINT "media_batches_prepared_by_fkey" FOREIGN KEY ("prepared_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "autoclave_logs" ADD CONSTRAINT "autoclave_logs_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "autoclave_logs" ADD CONSTRAINT "autoclave_logs_media_batch_id_fkey" FOREIGN KEY ("media_batch_id") REFERENCES "media_batches"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "autoclave_logs" ADD CONSTRAINT "autoclave_logs_operator_id_fkey" FOREIGN KEY ("operator_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "inventory_transactions" ADD CONSTRAINT "inventory_transactions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "inventory_transactions" ADD CONSTRAINT "inventory_transactions_chemical_id_fkey" FOREIGN KEY ("chemical_id") REFERENCES "chemicals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -515,6 +649,9 @@ ALTER TABLE "inventory_transactions" ADD CONSTRAINT "inventory_transactions_rela
 
 -- AddForeignKey
 ALTER TABLE "inventory_transactions" ADD CONSTRAINT "inventory_transactions_operator_id_fkey" FOREIGN KEY ("operator_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "contamination_events" ADD CONSTRAINT "contamination_events_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "contamination_events" ADD CONSTRAINT "contamination_events_vessel_id_fkey" FOREIGN KEY ("vessel_id") REFERENCES "vessels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -532,22 +669,43 @@ ALTER TABLE "contamination_events" ADD CONSTRAINT "contamination_events_location
 ALTER TABLE "contamination_events" ADD CONSTRAINT "contamination_events_detected_by_fkey" FOREIGN KEY ("detected_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "discard_logs" ADD CONSTRAINT "discard_logs_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "discard_logs" ADD CONSTRAINT "discard_logs_vessel_id_fkey" FOREIGN KEY ("vessel_id") REFERENCES "vessels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "discard_logs" ADD CONSTRAINT "discard_logs_discarded_by_fkey" FOREIGN KEY ("discarded_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "locations" ADD CONSTRAINT "locations_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "environmental_logs" ADD CONSTRAINT "environmental_logs_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "environmental_logs" ADD CONSTRAINT "environmental_logs_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "customers" ADD CONSTRAINT "customers_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "sales_orders" ADD CONSTRAINT "sales_orders_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "sales_orders" ADD CONSTRAINT "sales_orders_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "order_line_items" ADD CONSTRAINT "order_line_items_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "order_line_items" ADD CONSTRAINT "order_line_items_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "sales_orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "order_line_items" ADD CONSTRAINT "order_line_items_species_id_fkey" FOREIGN KEY ("species_id") REFERENCES "plant_species"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "order_fulfillments" ADD CONSTRAINT "order_fulfillments_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "order_fulfillments" ADD CONSTRAINT "order_fulfillments_order_line_item_id_fkey" FOREIGN KEY ("order_line_item_id") REFERENCES "order_line_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

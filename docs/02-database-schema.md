@@ -2,10 +2,14 @@
 
 PostgreSQL. All primary keys `UUID DEFAULT gen_random_uuid()` unless noted. All tables carry `created_at` / `updated_at` timestamps (omitted below for brevity).
 
+**Multi-tenancy:** shared database, not database-per-tenant. Every table below except `organizations` itself carries an `organization_id` FK, denormalized directly onto the table rather than left to be derived through joins — every query filters `WHERE organization_id = $1` directly, so a forgotten join can't silently leak another tenant's rows. Omitted from the individual table listings below and the ERD (21 identical relations would make the diagram unreadable) — assume it's there. `email` on `users` stays globally unique rather than unique-per-tenant, so login can resolve straight from an email/password pair without first having to resolve which organization to check against.
+
 ## 1. Entity Relationship Diagram
 
 ```mermaid
 erDiagram
+    ORGANIZATIONS ||--o{ USERS : "scopes (like every table)"
+
     USERS ||--o{ BATCHES : "created_by"
     USERS ||--o{ SUBCULTURE_SESSIONS : "operator"
     USERS ||--o{ MEDIA_BATCHES : "prepared_by"
@@ -44,14 +48,24 @@ erDiagram
 
 ## 2. Table Definitions
 
+### Tenancy
+
+**`organizations`**
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| name | text | |
+| slug | text unique | |
+
 ### Identity
 
 **`users`**
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
+| organization_id | uuid FK → organizations | |
 | name | text | |
-| email | text unique | |
+| email | text unique | globally unique, not per-org — see the multi-tenancy note above |
 | password_hash | text | |
 | role | enum(`admin`,`lab_manager`,`lab_technician`,`media_prep_staff`) | |
 | active | boolean default true | |

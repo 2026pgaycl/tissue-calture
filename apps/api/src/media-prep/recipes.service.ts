@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CalculateRecipeDto, CreateRecipeDto } from "./media-prep.dto";
 
@@ -6,25 +6,27 @@ import { CalculateRecipeDto, CreateRecipeDto } from "./media-prep.dto";
 export class RecipesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(organizationId: string) {
     return this.prisma.mediaRecipe.findMany({
+      where: { organizationId },
       include: { components: { include: { chemical: true } } },
       orderBy: { name: "asc" },
     });
   }
 
-  async findOne(id: string) {
-    const recipe = await this.prisma.mediaRecipe.findUnique({
-      where: { id },
+  async findOne(id: string, organizationId: string) {
+    const recipe = await this.prisma.mediaRecipe.findFirst({
+      where: { id, organizationId },
       include: { components: { include: { chemical: true } } },
     });
     if (!recipe) throw new NotFoundException("Recipe not found");
     return recipe;
   }
 
-  create(dto: CreateRecipeDto, userId: string) {
+  create(dto: CreateRecipeDto, userId: string, organizationId: string) {
     return this.prisma.mediaRecipe.create({
       data: {
+        organizationId,
         name: dto.name,
         basalMediaType: dto.basalMediaType,
         targetPh: dto.targetPh,
@@ -32,6 +34,7 @@ export class RecipesService {
         createdById: userId,
         components: {
           create: dto.components.map((c) => ({
+            organizationId,
             chemicalId: c.chemicalId,
             concentration: c.concentration,
             unit: c.unit,
@@ -43,8 +46,8 @@ export class RecipesService {
   }
 
   /** qty = concentration x target_volume / stock_concentration (docs/01-architecture-overview.md). */
-  async calculate(id: string, dto: CalculateRecipeDto) {
-    const recipe = await this.findOne(id);
+  async calculate(id: string, dto: CalculateRecipeDto, organizationId: string) {
+    const recipe = await this.findOne(id, organizationId);
     return recipe.components.map((component) => {
       const requiredQty =
         (Number(component.concentration) * dto.targetVolumeL) /

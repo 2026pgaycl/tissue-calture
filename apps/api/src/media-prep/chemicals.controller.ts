@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { Roles } from "../common/decorators/roles.decorator";
 import { Role } from "@prisma/client";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -11,19 +11,19 @@ export class ChemicalsController {
   constructor(private readonly chemicalsService: ChemicalsService) {}
 
   @Get("chemicals")
-  findAll() {
-    return this.chemicalsService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.chemicalsService.findAll(user.organizationId);
   }
 
   @Get("inventory/low-stock")
-  lowStock() {
-    return this.chemicalsService.lowStock();
+  lowStock(@CurrentUser() user: AuthenticatedUser) {
+    return this.chemicalsService.lowStock(user.organizationId);
   }
 
   @Post("chemicals")
   @Roles(Role.ADMIN, Role.LAB_MANAGER, Role.MEDIA_PREP_STAFF)
-  create(@Body() dto: CreateChemicalDto) {
-    return this.chemicalsService.create(dto);
+  create(@Body() dto: CreateChemicalDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.chemicalsService.create(dto, user.organizationId);
   }
 
   @Patch("chemicals/:id/stock")

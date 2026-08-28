@@ -1,4 +1,4 @@
-﻿import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CompleteSessionDto, StartSessionDto } from "./subculture.dto";
 import { generateBarcode } from "../common/utils/barcode.util";
@@ -10,7 +10,7 @@ export class SubcultureSessionsService {
 
   async start(dto: StartSessionDto, user: AuthenticatedUser) {
     const inputVessels = await this.prisma.vessel.findMany({
-      where: { id: { in: dto.inputVesselIds } },
+      where: { id: { in: dto.inputVesselIds }, organizationId: user.organizationId },
     });
     if (inputVessels.length !== dto.inputVesselIds.length) {
       throw new BadRequestException("One or more input vessels were not found");
@@ -18,10 +18,12 @@ export class SubcultureSessionsService {
 
     return this.prisma.subcultureSession.create({
       data: {
+        organizationId: user.organizationId,
         workstationId: dto.workstationId,
         operatorId: user.id,
         sessionVessels: {
           create: dto.inputVesselIds.map((vesselId) => ({
+            organizationId: user.organizationId,
             vesselId,
             direction: "INPUT" as const,
           })),
@@ -36,9 +38,9 @@ export class SubcultureSessionsService {
    * primary input vessel and belonging to the same batch (stage advancement to a new batch
    * is a separate `POST /batches` call, not implied by completing a session).
    */
-  async complete(id: string, dto: CompleteSessionDto) {
-    const session = await this.prisma.subcultureSession.findUnique({
-      where: { id },
+  async complete(id: string, dto: CompleteSessionDto, organizationId: string) {
+    const session = await this.prisma.subcultureSession.findFirst({
+      where: { id, organizationId },
       include: { sessionVessels: { where: { direction: "INPUT" }, include: { vessel: true } } },
     });
     if (!session) throw new NotFoundException("Subculture session not found");
@@ -52,6 +54,7 @@ export class SubcultureSessionsService {
       for (const output of dto.outputs) {
         const vessel = await tx.vessel.create({
           data: {
+            organizationId,
             barcode: generateBarcode("VSL"),
             batchId: primaryInput.batchId,
             parentVesselId: primaryInput.id,
@@ -61,7 +64,7 @@ export class SubcultureSessionsService {
           },
         });
         await tx.subcultureSessionVessel.create({
-          data: { sessionId: id, vesselId: vessel.id, direction: "OUTPUT" },
+          data: { organizationId, sessionId: id, vesselId: vessel.id, direction: "OUTPUT" },
         });
         outputVessels.push(vessel);
       }

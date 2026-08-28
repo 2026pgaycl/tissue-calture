@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateContaminationEventDto } from "./qc.dto";
@@ -15,8 +15,9 @@ export interface ContaminationEventFilters {
 export class ContaminationEventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(filters: ContaminationEventFilters) {
+  findAll(organizationId: string, filters: ContaminationEventFilters) {
     const where: Prisma.ContaminationEventWhereInput = {
+      organizationId,
       ...(filters.contaminationType
         ? { contaminationType: filters.contaminationType as Prisma.ContaminationEventWhereInput["contaminationType"] }
         : {}),
@@ -28,12 +29,14 @@ export class ContaminationEventsService {
   }
 
   async create(dto: CreateContaminationEventDto, user: AuthenticatedUser) {
-    const vessel = await this.prisma.vessel.findUnique({ where: { id: dto.vesselId } });
+    const vessel = await this.prisma.vessel.findFirst({
+      where: { id: dto.vesselId, organizationId: user.organizationId },
+    });
     if (!vessel) throw new NotFoundException("Vessel not found");
 
     return this.prisma.$transaction(async (tx) => {
       const event = await tx.contaminationEvent.create({
-        data: { ...dto, detectedById: user.id },
+        data: { ...dto, organizationId: user.organizationId, detectedById: user.id },
       });
       await tx.vessel.update({
         where: { id: dto.vesselId },

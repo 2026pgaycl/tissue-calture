@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { Roles } from "../common/decorators/roles.decorator";
 import { Role } from "@prisma/client";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -12,13 +12,14 @@ export class BatchesController {
 
   @Get()
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query("speciesId") speciesId?: string,
     @Query("stage") stage?: string,
     @Query("status") status?: string,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
   ) {
-    return this.batchesService.findAll({
+    return this.batchesService.findAll(user.organizationId, {
       speciesId,
       stage,
       status,
@@ -28,13 +29,13 @@ export class BatchesController {
   }
 
   @Get(":id/lineage")
-  lineage(@Param("id") id: string) {
-    return this.batchesService.lineage(id);
+  lineage(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.batchesService.lineage(id, user.organizationId);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.batchesService.findOne(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.batchesService.findOne(id, user.organizationId);
   }
 
   @Post()

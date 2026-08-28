@@ -17,7 +17,7 @@ export class SubcultureSessionsController {
   }
 
   @Patch(":id/complete")
-  complete(@Param("id") id: string, @Body() dto: CompleteSessionDto) {
-    return this.service.complete(id, dto);
+  complete(@Param("id") id: string, @Body() dto: CompleteSessionDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.complete(id, dto, user.organizationId);
   }
 }

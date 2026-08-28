@@ -1,4 +1,4 @@
-﻿import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateUserDto, UpdateUserDto } from "./users.dto";
@@ -7,28 +7,29 @@ import { CreateUserDto, UpdateUserDto } from "./users.dto";
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(organizationId: string) {
     return this.prisma.user.findMany({
+      where: { organizationId },
       select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, organizationId: string) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new ConflictException("A user with this email already exists");
     }
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
-      data: { name: dto.name, email: dto.email, passwordHash, role: dto.role },
+      data: { organizationId, name: dto.name, email: dto.email, passwordHash, role: dto.role },
     });
     const { passwordHash: _omit, ...safeUser } = user;
     return safeUser;
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateUserDto, organizationId: string) {
+    const existing = await this.prisma.user.findFirst({ where: { id, organizationId } });
     if (!existing) {
       throw new NotFoundException("User not found");
     }

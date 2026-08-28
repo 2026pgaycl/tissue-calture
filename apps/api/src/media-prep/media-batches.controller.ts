@@ -11,13 +11,13 @@ export class MediaBatchesController {
   constructor(private readonly mediaBatchesService: MediaBatchesService) {}
 
   @Get()
-  findAll() {
-    return this.mediaBatchesService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.mediaBatchesService.findAll(user.organizationId);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.mediaBatchesService.findOne(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.mediaBatchesService.findOne(id, user.organizationId);
   }
 
   @Post()

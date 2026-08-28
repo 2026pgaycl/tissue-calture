@@ -20,11 +20,16 @@ export class AuthService {
     if (!passwordMatches) {
       throw new UnauthorizedException("Invalid credentials");
     }
-    return { id: user.id, email: user.email, role: user.role };
+    return { id: user.id, email: user.email, role: user.role, organizationId: user.organizationId };
   }
 
   issueToken(user: AuthenticatedUser): { accessToken: string; expiresIn: string } {
-    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+    };
     return {
       accessToken: this.jwtService.sign(payload),
       expiresIn: process.env.JWT_EXPIRES_IN ?? "8h",

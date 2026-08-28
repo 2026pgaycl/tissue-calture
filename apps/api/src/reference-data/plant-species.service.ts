@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePlantSpeciesDto } from "./reference-data.dto";
 
@@ -6,11 +6,11 @@ import { CreatePlantSpeciesDto } from "./reference-data.dto";
 export class PlantSpeciesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.plantSpecies.findMany({ orderBy: { name: "asc" } });
+  findAll(organizationId: string) {
+    return this.prisma.plantSpecies.findMany({ where: { organizationId }, orderBy: { name: "asc" } });
   }
 
-  create(dto: CreatePlantSpeciesDto) {
-    return this.prisma.plantSpecies.create({ data: dto });
+  create(dto: CreatePlantSpeciesDto, organizationId: string) {
+    return this.prisma.plantSpecies.create({ data: { ...dto, organizationId } });
   }
 }
