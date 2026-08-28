@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { VesselType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateVesselDto, UpdateVesselStatusDto } from "./batches.dto";
 import { generateBarcode } from "../common/utils/barcode.util";
@@ -45,6 +46,26 @@ export class VesselsService {
         mediaBatchId: dto.mediaBatchId,
       },
     });
+  }
+
+  /**
+   * Mints a fresh, guaranteed-unique barcode for a pre-printed label — no vessel record is
+   * created. Numbering is per (organization, vesselType, year) — the counter resets each year —
+   * backed by an atomic upsert against VesselLabelCounter so concurrent requests can never hand
+   * out the same number.
+   */
+  async generateLabel(vesselType: VesselType, organizationId: string) {
+    const year = new Date().getFullYear();
+    const rows = await this.prisma.$queryRaw<{ issued: number }[]>`
+      INSERT INTO vessel_label_counters (organization_id, vessel_type, year, next_number)
+      VALUES (${organizationId}::uuid, ${vesselType}::"VesselType", ${year}, 2)
+      ON CONFLICT (organization_id, vessel_type, year)
+      DO UPDATE SET next_number = vessel_label_counters.next_number + 1
+      RETURNING next_number - 1 AS issued
+    `;
+    const sequenceNumber = rows[0].issued;
+    const barcode = `VSL-${vesselType}-${year}-${String(sequenceNumber).padStart(8, "0")}`;
+    return { barcode, vesselType, year, sequenceNumber };
   }
 
   async updateStatus(id: string, dto: UpdateVesselStatusDto, organizationId: string) {

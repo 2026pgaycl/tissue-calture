@@ -162,6 +162,7 @@ model Organization {
   salesOrders              SalesOrder[]
   orderLineItems           OrderLineItem[]
   orderFulfillments        OrderFulfillment[]
+  vesselLabelCounters      VesselLabelCounter[]
 
   @@map("organizations")
 }
@@ -284,6 +285,22 @@ model Vessel {
   @@index([locationId])
   @@index([status])
   @@map("vessels")
+}
+
+// Per-org, per-type running counter backing the pre-printed vessel label generator
+// (Admin > Vessel Labels). Incremented via an atomic upsert (`INSERT ... ON CONFLICT DO
+// UPDATE ... RETURNING`) in VesselsService.generateLabel so concurrent requests never hand
+// out the same number — no application-level locking needed, Postgres does it.
+model VesselLabelCounter {
+  organizationId String     @map("organization_id") @db.Uuid
+  vesselType     VesselType @map("vessel_type")
+  year           Int
+  nextNumber     Int        @default(1) @map("next_number")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([organizationId, vesselType, year])
+  @@map("vessel_label_counters")
 }
 
 // ─────────────────────────────────────────────────────────────────────────

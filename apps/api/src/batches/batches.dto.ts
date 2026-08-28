@@ -36,3 +36,8 @@ export class UpdateVesselStatusDto {
   @IsEnum(VesselStatus)
   status!: VesselStatus;
 }
+
+export class GenerateLabelQueryDto {
+  @IsEnum(VesselType)
+  vesselType!: VesselType;
+}
