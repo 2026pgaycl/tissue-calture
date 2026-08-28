@@ -9,6 +9,11 @@ export class SubcultureSessionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async start(dto: StartSessionDto, user: AuthenticatedUser) {
+    const workstation = await this.prisma.workstation.findFirst({
+      where: { id: dto.workstationId, organizationId: user.organizationId },
+    });
+    if (!workstation) throw new BadRequestException("Workstation not found");
+
     const inputVessels = await this.prisma.vessel.findMany({
       where: { id: { in: dto.inputVesselIds }, organizationId: user.organizationId },
     });
@@ -48,6 +53,21 @@ export class SubcultureSessionsService {
 
     const primaryInput = session.sessionVessels[0]?.vessel;
     if (!primaryInput) throw new BadRequestException("Session has no input vessels");
+
+    const locationIds = [...new Set(dto.outputs.map((o) => o.locationId))];
+    const locations = await this.prisma.location.findMany({
+      where: { id: { in: locationIds }, organizationId },
+    });
+    if (locations.length !== locationIds.length) {
+      throw new BadRequestException("One or more output locations were not found");
+    }
+
+    if (dto.mediaBatchId) {
+      const mediaBatch = await this.prisma.mediaBatch.findFirst({
+        where: { id: dto.mediaBatchId, organizationId },
+      });
+      if (!mediaBatch) throw new BadRequestException("Media batch not found");
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const outputVessels = [];

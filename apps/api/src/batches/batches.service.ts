@@ -45,6 +45,11 @@ export class BatchesService {
   }
 
   async create(dto: CreateBatchDto, user: AuthenticatedUser) {
+    const species = await this.prisma.plantSpecies.findFirst({
+      where: { id: dto.speciesId, organizationId: user.organizationId },
+    });
+    if (!species) throw new BadRequestException("Species not found");
+
     if (dto.parentBatchId) {
       const parent = await this.prisma.batch.findFirst({
         where: { id: dto.parentBatchId, organizationId: user.organizationId },

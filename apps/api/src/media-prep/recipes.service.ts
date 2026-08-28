@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CalculateRecipeDto, CreateRecipeDto } from "./media-prep.dto";
 
@@ -23,7 +23,21 @@ export class RecipesService {
     return recipe;
   }
 
-  create(dto: CreateRecipeDto, userId: string, organizationId: string) {
+  async create(dto: CreateRecipeDto, userId: string, organizationId: string) {
+    const chemicalIds = [
+      ...new Set(
+        [dto.gellingAgentId, ...dto.components.map((c) => c.chemicalId)].filter(
+          (id): id is string => !!id,
+        ),
+      ),
+    ];
+    const chemicals = await this.prisma.chemical.findMany({
+      where: { id: { in: chemicalIds }, organizationId },
+    });
+    if (chemicals.length !== chemicalIds.length) {
+      throw new BadRequestException("One or more chemicals were not found");
+    }
+
     return this.prisma.mediaRecipe.create({
       data: {
         organizationId,

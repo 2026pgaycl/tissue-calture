@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateContaminationEventDto } from "./qc.dto";
@@ -33,6 +33,24 @@ export class ContaminationEventsService {
       where: { id: dto.vesselId, organizationId: user.organizationId },
     });
     if (!vessel) throw new NotFoundException("Vessel not found");
+
+    const location = await this.prisma.location.findFirst({
+      where: { id: dto.locationId, organizationId: user.organizationId },
+    });
+    if (!location) throw new BadRequestException("Location not found");
+
+    if (dto.mediaBatchId) {
+      const mediaBatch = await this.prisma.mediaBatch.findFirst({
+        where: { id: dto.mediaBatchId, organizationId: user.organizationId },
+      });
+      if (!mediaBatch) throw new BadRequestException("Media batch not found");
+    }
+    if (dto.workstationId) {
+      const workstation = await this.prisma.workstation.findFirst({
+        where: { id: dto.workstationId, organizationId: user.organizationId },
+      });
+      if (!workstation) throw new BadRequestException("Workstation not found");
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const event = await tx.contaminationEvent.create({

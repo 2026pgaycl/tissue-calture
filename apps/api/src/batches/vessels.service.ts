@@ -23,6 +23,18 @@ export class VesselsService {
     const batch = await this.prisma.batch.findFirst({ where: { id: dto.batchId, organizationId } });
     if (!batch) throw new BadRequestException("Batch not found");
 
+    const location = await this.prisma.location.findFirst({
+      where: { id: dto.locationId, organizationId },
+    });
+    if (!location) throw new BadRequestException("Location not found");
+
+    if (dto.mediaBatchId) {
+      const mediaBatch = await this.prisma.mediaBatch.findFirst({
+        where: { id: dto.mediaBatchId, organizationId },
+      });
+      if (!mediaBatch) throw new BadRequestException("Media batch not found");
+    }
+
     return this.prisma.vessel.create({
       data: {
         organizationId,
