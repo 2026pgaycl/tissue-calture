@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 // file's bundle doesn't pull in `next/headers`/`server-only` — this is only an optimistic
 // check; the NestJS API is the real trust boundary on every request.
 const SESSION_COOKIE = "tcms_session";
-const PUBLIC_ROUTES = ["/login", "/"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

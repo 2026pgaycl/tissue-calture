@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { LoginForm } from "./login-form";
+import { SignupForm } from "./signup-form";
 
-export default async function LoginPage() {
+export default async function SignupPage() {
   const session = await getSession();
   if (session) {
     redirect("/dashboard");
@@ -12,15 +12,15 @@ export default async function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h1 className="mb-1 text-lg font-semibold">TCMS</h1>
+        <h1 className="mb-1 text-lg font-semibold">Create your lab's account</h1>
         <p className="mb-6 text-sm text-[var(--color-text-muted)]">
-          Tissue Culture Management System
+          Sets up a new organization on TCMS and signs you in as its first admin.
         </p>
-        <LoginForm />
+        <SignupForm />
         <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
-          New lab?{" "}
-          <Link href="/signup" className="text-[var(--color-accent)] hover:underline">
-            Create an account
+          Already have an account?{" "}
+          <Link href="/login" className="text-[var(--color-accent)] hover:underline">
+            Sign in
           </Link>
         </p>
       </div>
