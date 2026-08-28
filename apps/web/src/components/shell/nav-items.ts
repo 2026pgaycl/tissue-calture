@@ -51,6 +51,16 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Admin",
-    items: [{ href: "/users", label: "Users", roles: ["ADMIN"] }],
+    items: [
+      { href: "/users", label: "Users", roles: ["ADMIN"] },
+      { href: "/admin/species", label: "Species", roles: ["ADMIN", "LAB_MANAGER"] },
+      { href: "/admin/locations", label: "Locations", roles: ["ADMIN", "LAB_MANAGER"] },
+      {
+        href: "/admin/vessel-labels",
+        label: "Vessel Labels",
+        roles: ["ADMIN", "LAB_MANAGER", "LAB_TECHNICIAN"],
+      },
+      { href: "/admin/reference-data", label: "Reference Data" },
+    ],
   },
 ];

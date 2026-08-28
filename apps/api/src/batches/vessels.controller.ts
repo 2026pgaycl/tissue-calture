@@ -5,6 +5,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/jwt-payload.interface";
 import { VesselsService } from "./vessels.service";
 import { CreateVesselDto, UpdateVesselStatusDto } from "./batches.dto";
+import { generateBarcode } from "../common/utils/barcode.util";
 
 @Controller("vessels")
 export class VesselsController {
@@ -14,6 +15,16 @@ export class VesselsController {
   @Get("lookup/:barcode")
   findByBarcode(@Param("barcode") barcode: string, @CurrentUser() user: AuthenticatedUser) {
     return this.vesselsService.findByBarcode(barcode, user.organizationId);
+  }
+
+  /**
+   * Mints a fresh unique barcode without creating a vessel record — for pre-printing blank
+   * labels to affix to a physical container before it's scanned in/registered later.
+   */
+  @Get("generate-label")
+  @Roles(Role.ADMIN, Role.LAB_MANAGER, Role.LAB_TECHNICIAN)
+  generateLabel() {
+    return { barcode: generateBarcode("VSL") };
   }
 
   @Get(":id/history")
